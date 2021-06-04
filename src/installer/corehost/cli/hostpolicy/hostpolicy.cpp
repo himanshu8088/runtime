@@ -123,6 +123,7 @@ namespace
         if (!parse_arguments(hostpolicy_init, argc, argv, args))
             return StatusCode::LibHostInvalidArgs;
 
+        args.trace();
         if (out_args != nullptr)
             *out_args = args;
 
@@ -442,6 +443,8 @@ SHARED_API int HOSTPOLICY_CALLTYPE corehost_main_with_output_buffer(const int ar
         if (!parse_arguments(g_init, argc, argv, args))
             return StatusCode::LibHostInvalidArgs;
 
+        args.trace();
+
         pal::string_t output_string;
         rc = run_host_command(g_init, args, &output_string);
         if (rc != StatusCode::Success)
@@ -473,7 +476,7 @@ SHARED_API int HOSTPOLICY_CALLTYPE corehost_main_with_output_buffer(const int ar
     return rc;
 }
 
-void trace_corehost_libhost_init(const hostpolicy_init_t &hostpolicy_init, const pal::string_t& location)
+int corehost_libhost_init(const hostpolicy_init_t &hostpolicy_init, const pal::string_t& location)
 {
     // Host info should always be valid in the delegate scenario
     assert(hostpolicy_init.host_info.is_valid(host_mode_t::libhost));
@@ -482,6 +485,7 @@ void trace_corehost_libhost_init(const hostpolicy_init_t &hostpolicy_init, const
     assert(!bundle::info_t::is_single_file_bundle());
 
     trace_corehost_init(hostpolicy_init, 0, nullptr, location);
+    return StatusCode::Success;
 }
 
 namespace
@@ -732,9 +736,10 @@ SHARED_API int HOSTPOLICY_CALLTYPE corehost_initialize(const corehost_initialize
 
     // Trace entry point information using previously set init information.
     // This function does not modify any global state.
-    trace_corehost_libhost_init(g_init, _X("corehost_initialize"));
+    int rc = corehost_libhost_init(g_init, _X("corehost_initialize"));
+    if (rc != StatusCode::Success)
+        return rc;
 
-    int rc;
     if (wait_for_initialized)
     {
         // Wait for context initialization to complete

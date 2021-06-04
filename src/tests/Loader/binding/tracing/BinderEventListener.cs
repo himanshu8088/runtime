@@ -158,6 +158,7 @@ namespace BinderTracingTests
 
     internal sealed class BinderEventListener : EventListener
     {
+        private const EventKeywords TasksFlowActivityIds = (EventKeywords)0x80;
         private const EventKeywords AssemblyLoaderKeyword = (EventKeywords)0x4;
 
         private readonly object eventsLock = new object();
@@ -207,6 +208,10 @@ namespace BinderTracingTests
             if (eventSource.Name == "Microsoft-Windows-DotNETRuntime")
             {
                 EnableEvents(eventSource, EventLevel.Verbose, AssemblyLoaderKeyword);
+            }
+            else if (eventSource.Name == "System.Threading.Tasks.TplEventSource")
+            {
+                EnableEvents(eventSource, EventLevel.Verbose, TasksFlowActivityIds);
             }
         }
 

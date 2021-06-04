@@ -104,7 +104,9 @@ namespace System.Threading
             //
             // This is not entirely convincing due to lack of volatile.
             //
-            T? result = null;
+#pragma warning disable 8654 // null problems; is there another way?
+            T result = null;
+#pragma warning restore 8654
             // T : class so call the object overload.
             CompareExchange(ref Unsafe.As<T, object?>(ref location1), ref Unsafe.As<T, object?>(ref value), ref Unsafe.As<T, object?>(ref comparand), ref Unsafe.As<T, object?>(ref result!));
             return result;
@@ -135,7 +137,9 @@ namespace System.Threading
             //
             // This is not entirely convincing due to lack of volatile.
             //
-            T? result = null;
+#pragma warning disable 8654 // null problems; is there another way?
+            T result = null;
+#pragma warning restore 8654
             // T : class so call the object overload.
             Exchange(ref Unsafe.As<T, object?>(ref location1), ref Unsafe.As<T, object?>(ref value), ref Unsafe.As<T, object?>(ref result!));
             return result;

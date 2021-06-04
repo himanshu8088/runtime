@@ -674,6 +674,7 @@ namespace System.Management
         protected ManagementException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
             errorCode = (ManagementStatus)info.GetValue("errorCode", typeof(ManagementStatus));
+            errorObject = info.GetValue("errorObject", typeof(ManagementBaseObject)) as ManagementBaseObject;
         }
         /// <summary>
         /// <para>Initializes a new instance of the <see cref='System.Management.ManagementException'/> class</para>
@@ -720,9 +721,7 @@ namespace System.Management
         {
             base.GetObjectData(info, context);
             info.AddValue("errorCode", errorCode);
-
-            // For .NET Framework compat we need to set `errorObject` as null
-            info.AddValue("errorObject", null);
+            info.AddValue("errorObject", errorObject);
         }
 
         private static string GetMessage(Exception e)

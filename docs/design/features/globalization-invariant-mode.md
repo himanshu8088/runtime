@@ -103,9 +103,9 @@ Applications can enable the invariant mode by either of the following:
 1. in project file:
 
     ```xml
-    <PropertyGroup>
-        <InvariantGlobalization>true</InvariantGlobalization>
-    </PropertyGroup>
+    <ItemGroup>
+      <RuntimeHostConfigurationOption Include="System.Globalization.Invariant" Value="true" />
+    </ItemGroup>
     ```
 
 2. in `runtimeconfig.json` file:

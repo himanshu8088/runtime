@@ -74,11 +74,11 @@ namespace Microsoft.DotNet.CoreSetup.Test.HostActivation
                 RepoDirectories = new RepoDirectoriesProvider();
 
                 ResourceLookupFixture_Built = new TestProjectFixture("ResourceLookup", RepoDirectories)
-                    .EnsureRestored()
+                    .EnsureRestored(RepoDirectories.CorehostPackages)
                     .BuildProject();
 
                 ResourceLookupFixture_Published = new TestProjectFixture("ResourceLookup", RepoDirectories)
-                    .EnsureRestored()
+                    .EnsureRestored(RepoDirectories.CorehostPackages)
                     .PublishProject();
             }
 

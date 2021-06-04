@@ -385,7 +385,7 @@ namespace System.Data.OleDb
             using (IDBInfoWrapper wrapper = IDBInfo())
             {
                 UnsafeNativeMethods.IDBInfo dbInfo = wrapper.Value;
-                // https://github.com/dotnet/runtime/issues/44288: check may not be necessary (and thus method may return non-nullable)
+                // TODO-NULLABLE: check may not be necessary (and thus method may return non-nullable)
                 if (null == dbInfo)
                 {
                     return null;

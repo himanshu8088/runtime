@@ -299,8 +299,7 @@ struct MonoLLVMJIT {
 		auto k = add_module (std::unique_ptr<Module>(module));
 		auto bodysym = compile_layer.findSymbolIn (k, mangle (func), false);
 		auto bodyaddr = bodysym.getAddress ();
-		if (!bodyaddr)
-			g_assert_not_reached();
+		assert (bodyaddr);
 		for (int i = 0; i < nvars; ++i) {
 			auto var = unwrap<GlobalVariable> (callee_vars[i]);
 			auto sym = compile_layer.findSymbolIn (k, mangle (var->getName ()), true);
@@ -405,8 +404,7 @@ public:
 		auto ModuleHandle = addModule (F, m);
 		auto BodySym = CompileLayer.findSymbolIn(ModuleHandle, mangle (F), false);
 		auto BodyAddr = BodySym.getAddress();
-		if (!BodyAddr)
-			g_assert_not_reached ();
+		assert (BodyAddr);
 
 		for (int i = 0; i < nvars; ++i) {
 			GlobalVariable *var = unwrap<GlobalVariable>(callee_vars [i]);

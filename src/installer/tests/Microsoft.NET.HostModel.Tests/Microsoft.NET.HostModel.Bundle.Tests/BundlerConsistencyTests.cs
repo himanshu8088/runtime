@@ -245,7 +245,7 @@ namespace Microsoft.NET.HostModel.Tests
 
                 TestFixture = new TestProjectFixture("StandaloneApp", RepoDirectories);
                 TestFixture
-                    .EnsureRestoredForRid(TestFixture.CurrentRid)
+                    .EnsureRestoredForRid(TestFixture.CurrentRid, RepoDirectories.CorehostPackages)
                     .PublishProject(runtime: TestFixture.CurrentRid,
                                     outputDirectory: BundleHelper.GetPublishPath(TestFixture));
             }

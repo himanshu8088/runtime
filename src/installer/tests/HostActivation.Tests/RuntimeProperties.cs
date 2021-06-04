@@ -116,7 +116,7 @@ namespace Microsoft.DotNet.CoreSetup.Test.HostActivation
                 RepoDirectories = new RepoDirectoriesProvider(builtDotnet: copiedDotnet);
 
                 RuntimePropertiesFixture = new TestProjectFixture("RuntimeProperties", RepoDirectories)
-                    .EnsureRestored()
+                    .EnsureRestored(RepoDirectories.CorehostPackages)
                     .BuildProject();
 
                 RuntimeConfig.FromFile(RuntimePropertiesFixture.TestProject.RuntimeConfigJson)

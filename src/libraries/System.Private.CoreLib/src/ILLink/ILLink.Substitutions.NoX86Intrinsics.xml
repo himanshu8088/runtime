@@ -3,19 +3,10 @@
     <type fullname="System.Runtime.Intrinsics.X86.Aes">
       <method signature="System.Boolean get_IsSupported()" body="stub" value="false" />
     </type>
-    <type fullname="System.Runtime.Intrinsics.X86.Aes/X64">
-      <method signature="System.Boolean get_IsSupported()" body="stub" value="false" />
-    </type>
     <type fullname="System.Runtime.Intrinsics.X86.Avx">
       <method signature="System.Boolean get_IsSupported()" body="stub" value="false" />
     </type>
-    <type fullname="System.Runtime.Intrinsics.X86.Avx/X64">
-      <method signature="System.Boolean get_IsSupported()" body="stub" value="false" />
-    </type>
     <type fullname="System.Runtime.Intrinsics.X86.Avx2">
-      <method signature="System.Boolean get_IsSupported()" body="stub" value="false" />
-    </type>
-    <type fullname="System.Runtime.Intrinsics.X86.Avx2/X64">
       <method signature="System.Boolean get_IsSupported()" body="stub" value="false" />
     </type>
     <type fullname="System.Runtime.Intrinsics.X86.Bmi1">
@@ -33,9 +24,6 @@
     <type fullname="System.Runtime.Intrinsics.X86.Fma">
       <method signature="System.Boolean get_IsSupported()" body="stub" value="false" />
     </type>
-    <type fullname="System.Runtime.Intrinsics.X86.Fma/X64">
-      <method signature="System.Boolean get_IsSupported()" body="stub" value="false" />
-    </type>
     <type fullname="System.Runtime.Intrinsics.X86.Lzcnt">
       <method signature="System.Boolean get_IsSupported()" body="stub" value="false" />
     </type>
@@ -43,9 +31,6 @@
       <method signature="System.Boolean get_IsSupported()" body="stub" value="false" />
     </type>
     <type fullname="System.Runtime.Intrinsics.X86.Pclmulqdq">
-      <method signature="System.Boolean get_IsSupported()" body="stub" value="false" />
-    </type>
-    <type fullname="System.Runtime.Intrinsics.X86.Pclmulqdq/X64">
       <method signature="System.Boolean get_IsSupported()" body="stub" value="false" />
     </type>
     <type fullname="System.Runtime.Intrinsics.X86.Popcnt">
@@ -69,9 +54,6 @@
     <type fullname="System.Runtime.Intrinsics.X86.Sse3">
       <method signature="System.Boolean get_IsSupported()" body="stub" value="false" />
     </type>
-    <type fullname="System.Runtime.Intrinsics.X86.Sse3/X64">
-      <method signature="System.Boolean get_IsSupported()" body="stub" value="false" />
-    </type>
     <type fullname="System.Runtime.Intrinsics.X86.Sse41">
       <method signature="System.Boolean get_IsSupported()" body="stub" value="false" />
     </type>
@@ -85,9 +67,6 @@
       <method signature="System.Boolean get_IsSupported()" body="stub" value="false" />
     </type>
     <type fullname="System.Runtime.Intrinsics.X86.Ssse3">
-      <method signature="System.Boolean get_IsSupported()" body="stub" value="false" />
-    </type>
-    <type fullname="System.Runtime.Intrinsics.X86.Ssse3/X64">
       <method signature="System.Boolean get_IsSupported()" body="stub" value="false" />
     </type>
     <type fullname="System.Runtime.Intrinsics.X86.X86Base">

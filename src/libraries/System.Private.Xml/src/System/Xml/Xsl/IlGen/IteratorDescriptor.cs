@@ -106,14 +106,14 @@ namespace System.Xml.Xsl.IlGen
         /// <summary>
         /// Create a StorageDescriptor for an item which is the Current item in an iterator.
         /// </summary>
-        public static StorageDescriptor Current(LocalBuilder locIter, MethodInfo currentMethod, Type itemStorageType)
+        public static StorageDescriptor Current(LocalBuilder locIter, Type itemStorageType)
         {
-            Debug.Assert(currentMethod.ReturnType == itemStorageType,
+            Debug.Assert(locIter.LocalType.GetMethod("get_Current")!.ReturnType == itemStorageType,
                          "Type " + itemStorageType + " does not match type of Current property.");
 
             StorageDescriptor storage = default;
             storage._location = ItemLocation.Current;
-            storage._locationObject = new CurrentContext(locIter, currentMethod);
+            storage._locationObject = locIter;
             storage._itemStorageType = itemStorageType;
             return storage;
         }
@@ -191,12 +191,12 @@ namespace System.Xml.Xsl.IlGen
         }
 
         /// <summary>
-        /// Return the "Current" location information (LocalBuilder and Current MethodInfo) that will store
-        /// this iterator's helper class. The Current property on this iterator can be accessed to get the CurrentMethod.
+        /// Return the LocalBuilder that will store this iterator's helper class.  The Current property
+        /// on this iterator can be accessed to get the current iteration value.
         /// </summary>
-        public CurrentContext? CurrentLocation
+        public LocalBuilder? CurrentLocation
         {
-            get { return _locationObject as CurrentContext; }
+            get { return _locationObject as LocalBuilder; }
         }
 
         /// <summary>
@@ -222,21 +222,6 @@ namespace System.Xml.Xsl.IlGen
         {
             get { return _itemStorageType; }
         }
-    }
-
-    /// <summary>
-    /// A data class to hold information for a "Current" StorageLocation.
-    /// </summary>
-    internal class CurrentContext
-    {
-        public CurrentContext(LocalBuilder local, MethodInfo currentMethod)
-        {
-            Local = local;
-            CurrentMethod = currentMethod;
-        }
-
-        public readonly LocalBuilder Local;
-        public readonly MethodInfo CurrentMethod;
     }
 
     /// <summary>
@@ -530,9 +515,8 @@ namespace System.Xml.Xsl.IlGen
                     break;
 
                 case ItemLocation.Current:
-                    CurrentContext currentContext = _storage.CurrentLocation!;
-                    _helper.Emit(OpCodes.Ldloca, currentContext.Local);
-                    _helper.Call(currentContext.CurrentMethod);
+                    _helper.Emit(OpCodes.Ldloca, _storage.CurrentLocation!);
+                    _helper.Call(_storage.CurrentLocation!.LocalType.GetMethod("get_Current")!);
                     break;
 
                 default:

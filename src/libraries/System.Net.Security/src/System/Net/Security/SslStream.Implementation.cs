@@ -231,7 +231,7 @@ namespace System.Net.Security
 
                     return task.ContinueWith((t, s) =>
                         {
-                            var tuple = ((SslStream, ValueStopwatch))s!;
+                            var tuple = (Tuple<SslStream, ValueStopwatch>)s!;
                             SslStream thisRef = tuple.Item1;
                             ValueStopwatch stopwatch = tuple.Item2;
 
@@ -247,7 +247,7 @@ namespace System.Net.Security
                                 t.GetAwaiter().GetResult();
                             }
                         },
-                        state: (this, stopwatch),
+                        state: Tuple.Create(this, stopwatch),
                         cancellationToken: default,
                         TaskContinuationOptions.ExecuteSynchronously,
                         TaskScheduler.Current);

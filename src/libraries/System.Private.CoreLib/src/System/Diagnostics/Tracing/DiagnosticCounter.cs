@@ -6,7 +6,6 @@ using System;
 using System.Diagnostics;
 #endif
 using System.Collections.Generic;
-using System.Runtime.Versioning;
 using System.Text;
 using System.Threading;
 
@@ -20,7 +19,6 @@ namespace System.Diagnostics.Tracing
     /// DiagnosticCounter is an abstract class that serves as the parent class for various Counter* classes,
     /// namely EventCounter, PollingCounter, IncrementingEventCounter, and IncrementingPollingCounter.
     /// </summary>
-    [UnsupportedOSPlatform("browser")]
     public abstract class DiagnosticCounter : IDisposable
     {
         /// <summary>

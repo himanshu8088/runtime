@@ -74,9 +74,7 @@ namespace System.Net.WebSockets.Client.Tests
                 var cts = new CancellationTokenSource(TimeOutMilliseconds);
                 Assert.Equal(WebSocketState.Open, cws.State);
 
-                // See issue for Browser websocket differences https://github.com/dotnet/runtime/issues/45538
-                var closeStatus = PlatformDetection.IsBrowser ? WebSocketCloseStatus.NormalClosure : WebSocketCloseStatus.InvalidMessageType;
-
+                var closeStatus = WebSocketCloseStatus.InvalidMessageType;
                 string closeDescription = "CloseAsync_InvalidMessageType";
 
                 await cws.CloseAsync(closeStatus, closeDescription, cts.Token);
@@ -103,7 +101,6 @@ namespace System.Net.WebSockets.Client.Tests
 
         [OuterLoop("Uses external server")]
         [ConditionalTheory(nameof(WebSocketsSupported)), MemberData(nameof(EchoServers))]
-        [ActiveIssue("https://github.com/dotnet/runtime/issues/45531", TestPlatforms.Browser)]
         public async Task CloseAsync_CloseDescriptionIsMaxLengthPlusOne_ThrowsArgumentException(Uri server)
         {
             string closeDescription = new string('C', CloseDescriptionMaxLength + 1);
@@ -135,8 +132,7 @@ namespace System.Net.WebSockets.Client.Tests
             {
                 var cts = new CancellationTokenSource(TimeOutMilliseconds);
 
-                // See issue for Browser websocket differences https://github.com/dotnet/runtime/issues/45538
-                var closeStatus = PlatformDetection.IsBrowser ? WebSocketCloseStatus.NormalClosure : WebSocketCloseStatus.InvalidMessageType;
+                var closeStatus = WebSocketCloseStatus.InvalidMessageType;
                 string closeDescription = "CloseAsync_Containing\u016Cnicode.";
 
                 await cws.CloseAsync(closeStatus, closeDescription, cts.Token);
@@ -165,7 +161,6 @@ namespace System.Net.WebSockets.Client.Tests
 
         [OuterLoop("Uses external server")]
         [ConditionalTheory(nameof(WebSocketsSupported)), MemberData(nameof(EchoServers))]
-        [ActiveIssue("https://github.com/dotnet/runtime/issues/45468", TestPlatforms.Browser)]
         public async Task CloseOutputAsync_ClientInitiated_CanReceive_CanClose(Uri server)
         {
             string message = "Hello WebSockets!";
@@ -252,7 +247,6 @@ namespace System.Net.WebSockets.Client.Tests
 
         [OuterLoop("Uses external server")]
         [ConditionalTheory(nameof(WebSocketsSupported)), MemberData(nameof(EchoServers))]
-        [ActiveIssue("https://github.com/dotnet/runtime/issues/45468", TestPlatforms.Browser)]
         public async Task CloseOutputAsync_CloseDescriptionIsNull_Success(Uri server)
         {
             using (ClientWebSocket cws = await WebSocketHelper.GetConnectedWebSocket(server, TimeOutMilliseconds, _output))
@@ -333,7 +327,6 @@ namespace System.Net.WebSockets.Client.Tests
 
         [ConditionalFact(nameof(WebSocketsSupported))]
         [ActiveIssue("https://github.com/dotnet/runtime/issues/34690", TestPlatforms.Windows, TargetFrameworkMonikers.Netcoreapp, TestRuntimes.Mono)]
-        [ActiveIssue("https://github.com/dotnet/runtime/issues/42852", TestPlatforms.Browser)]
         public async Task CloseAsync_CancelableEvenWhenPendingReceive_Throws()
         {
             var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

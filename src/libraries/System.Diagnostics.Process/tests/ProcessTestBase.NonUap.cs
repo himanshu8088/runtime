@@ -3,7 +3,6 @@
 
 using System.Collections.Generic;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.DotNet.RemoteExecutor;
 using Xunit;
@@ -12,14 +11,14 @@ namespace System.Diagnostics.Tests
 {
     partial class ProcessTestBase
     {
-        protected Process CreateProcessLong([CallerMemberName] string callerName = null)
+        protected Process CreateProcessLong()
         {
-            return CreateSleepProcess(RemotelyInvokable.WaitInMS, callerName);
+            return CreateSleepProcess(RemotelyInvokable.WaitInMS);
         }
 
-        protected Process CreateSleepProcess(int durationMs, [CallerMemberName] string callerName = null)
+        protected Process CreateSleepProcess(int durationMs)
         {
-            return CreateProcess(RemotelyInvokable.Sleep, durationMs.ToString(), callerName);
+            return CreateProcess(RemotelyInvokable.Sleep, durationMs.ToString());
         }
 
         protected Process CreateProcessPortable(Func<int> func)

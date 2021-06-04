@@ -159,10 +159,7 @@ namespace Microsoft.Extensions.FileProviders
         internal PhysicalFilesWatcher CreateFileWatcher()
         {
             string root = PathUtils.EnsureTrailingSlash(Path.GetFullPath(Root));
-
-            // When both UsePollingFileWatcher & UseActivePolling are set, we won't use a FileSystemWatcher.
-            FileSystemWatcher watcher = UsePollingFileWatcher && UseActivePolling ? null : new FileSystemWatcher(root);
-            return new PhysicalFilesWatcher(root, watcher, UsePollingFileWatcher, _filters)
+            return new PhysicalFilesWatcher(root, new FileSystemWatcher(root), UsePollingFileWatcher, _filters)
             {
                 UseActivePolling = UseActivePolling,
             };

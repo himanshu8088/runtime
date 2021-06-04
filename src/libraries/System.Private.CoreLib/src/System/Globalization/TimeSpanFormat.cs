@@ -129,8 +129,7 @@ namespace System.Globalization
                     }
                 }
 
-                ulong fraction64;
-                (totalSecondsRemaining, fraction64) = Math.DivRem((ulong)ticks, TimeSpan.TicksPerSecond);
+                totalSecondsRemaining = Math.DivRem((ulong)ticks, TimeSpan.TicksPerSecond, out ulong fraction64);
                 fraction = (uint)fraction64;
             }
 
@@ -171,7 +170,7 @@ namespace System.Globalization
             if (totalSecondsRemaining > 0)
             {
                 // Only compute minutes if the TimeSpan has an absolute value of >= 1 minute.
-                (totalMinutesRemaining, seconds) = Math.DivRem(totalSecondsRemaining, 60 /* seconds per minute */);
+                totalMinutesRemaining = Math.DivRem(totalSecondsRemaining, 60 /* seconds per minute */, out seconds);
                 Debug.Assert(seconds < 60);
             }
 
@@ -179,7 +178,7 @@ namespace System.Globalization
             if (totalMinutesRemaining > 0)
             {
                 // Only compute hours if the TimeSpan has an absolute value of >= 1 hour.
-                (totalHoursRemaining, minutes) = Math.DivRem(totalMinutesRemaining, 60 /* minutes per hour */);
+                totalHoursRemaining = Math.DivRem(totalMinutesRemaining, 60 /* minutes per hour */, out minutes);
                 Debug.Assert(minutes < 60);
             }
 
@@ -190,7 +189,7 @@ namespace System.Globalization
             if (totalHoursRemaining > 0)
             {
                 // Only compute days if the TimeSpan has an absolute value of >= 1 day.
-                (days, hours) = Math.DivRem((uint)totalHoursRemaining, 24 /* hours per day */);
+                days = Math.DivRem((uint)totalHoursRemaining, 24 /* hours per day */, out hours);
                 Debug.Assert(hours < 24);
             }
 

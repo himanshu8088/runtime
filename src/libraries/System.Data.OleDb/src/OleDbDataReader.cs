@@ -951,12 +951,12 @@ namespace System.Data.OleDb
             return GetData(ordinal);
         }
 
-        internal OleDbDataReader ResetChapter(int bindingIndex, int index, RowBinding rowbinding, int valueOffset)
+        internal OleDbDataReader? ResetChapter(int bindingIndex, int index, RowBinding rowbinding, int valueOffset)
         {
             return GetDataForReader(_metadata![bindingIndex + index].ordinal, rowbinding, valueOffset);
         }
 
-        private OleDbDataReader GetDataForReader(IntPtr ordinal, RowBinding rowbinding, int valueOffset)
+        private OleDbDataReader? GetDataForReader(IntPtr ordinal, RowBinding rowbinding, int valueOffset)
         {
             UnsafeNativeMethods.IRowsetInfo rowsetInfo = IRowsetInfo();
             UnsafeNativeMethods.IRowset? result;
@@ -964,10 +964,9 @@ namespace System.Data.OleDb
             hr = rowsetInfo.GetReferencedRowset((IntPtr)ordinal, ref ODB.IID_IRowset, out result);
 
             ProcessResults(hr);
-            // Per docs result can be null only when hr is DB_E_NOTAREFERENCECOLUMN which in most of the cases will cause the exception in ProcessResult
 
             OleDbDataReader? reader = null;
-
+            // TODO: Not sure if GetReferenceRowset above actually returns null, calling code seems to assume it doesn't
             if (null != result)
             {
                 // only when the first datareader is closed will the connection close
@@ -984,7 +983,6 @@ namespace System.Data.OleDb
                     _connection.AddWeakReference(reader, OleDbReferenceCollection.DataReaderTag);
                 }
             }
-
             return reader;
         }
 
@@ -1024,9 +1022,8 @@ namespace System.Data.OleDb
         {
             if (null != _metadata)
             {
-                Type? fieldType = _metadata[index].type.dataType;
-                Debug.Assert(fieldType != null);
-                return fieldType;
+                // TODO-NULLABLE: Should throw if null (empty), though it probably doesn't happen
+                return _metadata[index].type.dataType!;
             }
             throw ADP.DataReaderNoData();
         }
@@ -2276,6 +2273,7 @@ namespace System.Data.OleDb
             using (OleDbDataReader dataReader = new OleDbDataReader(_connection, _command, int.MinValue, 0))
             {
                 dataReader.InitializeIRowset(rowset, ChapterHandle.DB_NULL_HCHAPTER, IntPtr.Zero);
+                // TODO-NULLABLE: BuildSchemaTableInfo asserts that rowset isn't null, but doesn't do anything with it
                 dataReader.BuildSchemaTableInfo(rowset!, true, false);
 
                 hiddenColumns = GetPropertyValue(ODB.DBPROP_HIDDENCOLUMNS);

@@ -639,15 +639,14 @@ namespace System.Diagnostics.Tests
         [ConditionalFact(typeof(RemoteExecutor), nameof(RemoteExecutor.IsSupported))]
         public async Task WaitAsyncForProcess()
         {
-            Process p = CreateDefaultProcess();
+            Process p = CreateSleepProcess(WaitInMS);
+            p.Start();
 
             Task processTask = p.WaitForExitAsync();
-            Assert.False(p.HasExited);
-            Assert.False(processTask.IsCompleted);
+            Task delayTask = Task.Delay(WaitInMS * 2);
 
-            p.Kill();
-            await processTask;
-
+            Task result = await Task.WhenAny(processTask, delayTask);
+            Assert.Equal(processTask, result);
             Assert.True(p.HasExited);
         }
 

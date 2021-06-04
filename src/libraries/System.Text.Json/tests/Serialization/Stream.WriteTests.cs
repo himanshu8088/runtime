@@ -49,7 +49,6 @@ namespace System.Text.Json.Serialization.Tests
         }
 
         [Fact]
-        [SkipOnCoreClr("https://github.com/dotnet/runtime/issues/45464", RuntimeConfiguration.Checked)]
         public static async Task RoundTripAsync()
         {
             byte[] buffer;
@@ -405,7 +404,7 @@ namespace System.Text.Json.Serialization.Tests
         [InlineData(8192)]
         [InlineData(16384)]
         [InlineData(65536)]
-        public static async Task FlushThresholdTest(int bufferSize)
+        public static async void FlushThresholdTest(int bufferSize)
         {
             // bufferSize * 0.9 is the threshold size from codebase, subtract 2 for [" characters, then create a 
             // string containing (threshold - 2) amount of char 'a' which when written into output buffer produces buffer 

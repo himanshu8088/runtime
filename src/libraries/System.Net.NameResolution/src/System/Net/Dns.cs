@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net.Internals;
@@ -347,7 +346,7 @@ namespace System.Net
                 IPAddress? address = asyncState switch
                 {
                     IPAddress a => a,
-                    KeyValuePair<IPAddress, AddressFamily> t => t.Key,
+                    Tuple<IPAddress, AddressFamily> t => t.Item1,
                     _ => null
                 };
 
@@ -523,7 +522,7 @@ namespace System.Net
                         Task.FromResult(CreateHostEntryForAddress(ipAddress));
                 }
 
-                asyncState = family == AddressFamily.Unspecified ? (object)ipAddress : new KeyValuePair<IPAddress, AddressFamily>(ipAddress, family);
+                asyncState = family == AddressFamily.Unspecified ? (object)ipAddress : Tuple.Create(ipAddress, family);
             }
             else if (NameResolutionPal.SupportsGetAddrInfoAsync)
             {
@@ -547,7 +546,7 @@ namespace System.Net
             }
             else
             {
-                asyncState = family == AddressFamily.Unspecified ? (object)hostName : new KeyValuePair<string, AddressFamily>(hostName, family);
+                asyncState = family == AddressFamily.Unspecified ? (object)hostName : Tuple.Create(hostName, family);
             }
 
             if (justAddresses)
@@ -555,9 +554,9 @@ namespace System.Net
                 return RunAsync(s => s switch
                 {
                     string h => GetHostAddressesCore(h, AddressFamily.Unspecified),
-                    KeyValuePair<string, AddressFamily> t => GetHostAddressesCore(t.Key, t.Value),
+                    Tuple<string, AddressFamily> t => GetHostAddressesCore(t.Item1, t.Item2),
                     IPAddress a => GetHostAddressesCore(a, AddressFamily.Unspecified),
-                    KeyValuePair<IPAddress, AddressFamily> t => GetHostAddressesCore(t.Key, t.Value),
+                    Tuple<IPAddress, AddressFamily> t => GetHostAddressesCore(t.Item1, t.Item2),
                     _ => null
                 }, asyncState);
             }
@@ -566,9 +565,9 @@ namespace System.Net
                 return RunAsync(s => s switch
                 {
                     string h => GetHostEntryCore(h, AddressFamily.Unspecified),
-                    KeyValuePair<string, AddressFamily> t => GetHostEntryCore(t.Key, t.Value),
+                    Tuple<string, AddressFamily> t => GetHostEntryCore(t.Item1, t.Item2),
                     IPAddress a => GetHostEntryCore(a, AddressFamily.Unspecified),
-                    KeyValuePair<IPAddress, AddressFamily> t => GetHostEntryCore(t.Key, t.Value),
+                    Tuple<IPAddress, AddressFamily> t => GetHostEntryCore(t.Item1, t.Item2),
                     _ => null
                 }, asyncState);
             }

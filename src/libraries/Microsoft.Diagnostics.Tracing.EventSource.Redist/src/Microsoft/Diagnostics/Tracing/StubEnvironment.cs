@@ -20,10 +20,7 @@ namespace Microsoft.Diagnostics.Tracing
             return (int)Interop.Kernel32.GetCurrentProcessId();
         }
     }
-}
 
-namespace System.Numerics
-{
     internal static class BitOperations
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

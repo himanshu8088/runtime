@@ -19,7 +19,6 @@ namespace System.IO.Compression
                 CompressionLevel.Optimal => Quality_Default,
                 CompressionLevel.NoCompression => Quality_Min,
                 CompressionLevel.Fastest => 1,
-                CompressionLevel.SmallestSize => Quality_Max,
                 _ => (int)level,
             };
     }

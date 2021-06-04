@@ -53,11 +53,6 @@ namespace System.IO.Compression
                     memLevel = ZLibNative.Deflate_NoCompressionMemLevel;
                     break;
 
-                case CompressionLevel.SmallestSize:
-                    zlibCompressionLevel = ZLibNative.CompressionLevel.BestCompression;
-                    memLevel = ZLibNative.Deflate_DefaultMemLevel;
-                    break;
-
                 default:
                     throw new ArgumentOutOfRangeException(nameof(compressionLevel));
             }

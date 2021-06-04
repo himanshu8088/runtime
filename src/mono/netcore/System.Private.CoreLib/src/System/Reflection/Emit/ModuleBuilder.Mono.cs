@@ -851,7 +851,7 @@ namespace System.Reflection.Emit
             return false;
         }
 
-        internal ModuleBuilder InternalModule => this;
+        internal ModuleBuilder GetNativeHandle() => this;
 
         internal IntPtr GetUnderlyingNativeHandle() { return _impl; }
 

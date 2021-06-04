@@ -276,9 +276,7 @@ namespace Microsoft.DotNet.CoreSetup.Test.HostActivation
                 JObject configProperties = new JObject();
                 foreach (var property in _properties)
                 {
-                    var tokenValue = (property.Item2 == "false" || property.Item2 == "true") ?
-                        JToken.Parse(property.Item2) : property.Item2;
-                    configProperties.Add(property.Item1, tokenValue);
+                    configProperties.Add(property.Item1, property.Item2);
                 }
 
                 runtimeOptions.Add("configProperties", configProperties);

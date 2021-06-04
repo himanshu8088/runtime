@@ -479,7 +479,7 @@ namespace System.Net.Http.Functional.Tests
                 },
                 async server =>
                 {
-                    Task serverHandling = server.AcceptConnectionAsync(async connection =>
+                    await server.AcceptConnectionAsync(async connection =>
                     {
                         await connection.ReadRequestDataAsync(readBody: false);
                         await connection.SendResponseAsync(HttpStatusCode.OK, headers: new HttpHeaderData[] { new HttpHeaderData("Content-Length", "5") });
@@ -497,20 +497,11 @@ namespace System.Net.Http.Functional.Tests
                                 httpClient.CancelPendingRequests();
                                 break;
 
-                                // case 2: timeout fires on its own
+                            // case 2: timeout fires on its own
                         }
 
                         await tcs.Task;
                     });
-
-                    // The client may have completed before even sending a request when testing HttpClient.Timeout.
-                    await Task.WhenAny(serverHandling, tcs.Task);
-                    if (cancelMode != 2)
-                    {
-                        // If using a timeout to cancel requests, it's possible the server's processing could have gotten interrupted,
-                        // so we want to ignore any exceptions from the server when in that mode.  For anything else, let exceptions propagate.
-                        await serverHandling;
-                    }
                 });
         }
 
@@ -1076,33 +1067,42 @@ namespace System.Net.Http.Functional.Tests
 
         [Fact]
         [OuterLoop]
-        public void Send_TimeoutResponseContent_Throws()
+        public async Task Send_TimeoutResponseContent_Throws()
         {
-            const string Content = "Test content";
+            string content = "Test content";
 
-            using var server = new LoopbackServer();
-
-            // Ignore all failures from the server. This includes being disposed of before ever accepting a connection,
-            // which is possible if the client times out so quickly that it hasn't initiated a connection yet.
-            _ = server.AcceptConnectionAsync(async connection =>
-            {
-                await connection.ReadRequestDataAsync();
-                await connection.SendResponseAsync(headers: new[] { new HttpHeaderData("Content-Length", (Content.Length * 100).ToString()) });
-                for (int i = 0; i < 100; ++i)
+            await LoopbackServer.CreateClientAndServerAsync(
+                async uri =>
                 {
-                    await connection.Writer.WriteLineAsync(Content);
-                    await connection.Writer.FlushAsync();
-                    await Task.Delay(TimeSpan.FromSeconds(0.1));
-                }
-            });
+                    var sendTask = Task.Run(() => {
+                        using HttpClient httpClient = CreateHttpClient();
+                        httpClient.Timeout = TimeSpan.FromSeconds(0.5);
+                        HttpResponseMessage response = httpClient.Send(new HttpRequestMessage(HttpMethod.Get, uri));
+                    });
 
-            TaskCanceledException ex = Assert.Throws<TaskCanceledException>(() =>
-            {
-                using HttpClient httpClient = CreateHttpClient();
-                httpClient.Timeout = TimeSpan.FromSeconds(0.5);
-                HttpResponseMessage response = httpClient.Send(new HttpRequestMessage(HttpMethod.Get, server.Address));
-            });
-            Assert.IsType<TimeoutException>(ex.InnerException);
+                    TaskCanceledException ex = await Assert.ThrowsAsync<TaskCanceledException>(() => sendTask);
+                    Assert.IsType<TimeoutException>(ex.InnerException);
+                },
+                async server =>
+                {
+                    await server.AcceptConnectionAsync(async connection =>
+                    {
+                        try
+                        {
+                            await connection.ReadRequestDataAsync();
+                            await connection.SendResponseAsync(headers: new List<HttpHeaderData>() {
+                                new HttpHeaderData("Content-Length", (content.Length * 100).ToString())
+                            });
+                            for (int i = 0; i < 100; ++i)
+                            {
+                                await connection.Writer.WriteLineAsync(content);
+                                await connection.Writer.FlushAsync();
+                                await Task.Delay(TimeSpan.FromSeconds(0.1));
+                            }
+                        }
+                        catch { }
+                    });
+                }); 
         }
 
         public static IEnumerable<object[]> VersionSelectionMemberData()

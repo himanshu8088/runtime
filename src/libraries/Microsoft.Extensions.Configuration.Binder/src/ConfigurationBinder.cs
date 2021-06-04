@@ -14,8 +14,6 @@ namespace Microsoft.Extensions.Configuration
     /// </summary>
     public static class ConfigurationBinder
     {
-        private const BindingFlags DeclaredOnlyLookup = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
-
         /// <summary>
         /// Attempts to bind the configuration instance to a new instance of type T.
         /// If this configuration section has a value, that will be used.
@@ -181,7 +179,7 @@ namespace Microsoft.Extensions.Configuration
         {
             if (instance != null)
             {
-                foreach (PropertyInfo property in GetAllProperties(instance.GetType()))
+                foreach (PropertyInfo property in GetAllProperties(instance.GetType().GetTypeInfo()))
                 {
                     BindProperty(property, instance, configuration, options);
                 }
@@ -216,18 +214,20 @@ namespace Microsoft.Extensions.Configuration
             }
         }
 
-        private static object BindToCollection(Type type, IConfiguration config, BinderOptions options)
+        private static object BindToCollection(TypeInfo typeInfo, IConfiguration config, BinderOptions options)
         {
-            Type genericType = typeof(List<>).MakeGenericType(type.GenericTypeArguments[0]);
-            object instance = Activator.CreateInstance(genericType);
-            BindCollection(instance, genericType, config, options);
+            Type type = typeof(List<>).MakeGenericType(typeInfo.GenericTypeArguments[0]);
+            object instance = Activator.CreateInstance(type);
+            BindCollection(instance, type, config, options);
             return instance;
         }
 
         // Try to create an array/dictionary instance to back various collection interfaces
         private static object AttemptBindToCollectionInterfaces(Type type, IConfiguration config, BinderOptions options)
         {
-            if (!type.IsInterface)
+            TypeInfo typeInfo = type.GetTypeInfo();
+
+            if (!typeInfo.IsInterface)
             {
                 return null;
             }
@@ -236,13 +236,13 @@ namespace Microsoft.Extensions.Configuration
             if (collectionInterface != null)
             {
                 // IEnumerable<T> is guaranteed to have exactly one parameter
-                return BindToCollection(type, config, options);
+                return BindToCollection(typeInfo, config, options);
             }
 
             collectionInterface = FindOpenGenericInterface(typeof(IReadOnlyDictionary<,>), type);
             if (collectionInterface != null)
             {
-                Type dictionaryType = typeof(Dictionary<,>).MakeGenericType(type.GenericTypeArguments[0], type.GenericTypeArguments[1]);
+                Type dictionaryType = typeof(Dictionary<,>).MakeGenericType(typeInfo.GenericTypeArguments[0], typeInfo.GenericTypeArguments[1]);
                 object instance = Activator.CreateInstance(dictionaryType);
                 BindDictionary(instance, dictionaryType, config, options);
                 return instance;
@@ -251,7 +251,7 @@ namespace Microsoft.Extensions.Configuration
             collectionInterface = FindOpenGenericInterface(typeof(IDictionary<,>), type);
             if (collectionInterface != null)
             {
-                object instance = Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(type.GenericTypeArguments[0], type.GenericTypeArguments[1]));
+                object instance = Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(typeInfo.GenericTypeArguments[0], typeInfo.GenericTypeArguments[1]));
                 BindDictionary(instance, collectionInterface, config, options);
                 return instance;
             }
@@ -260,21 +260,21 @@ namespace Microsoft.Extensions.Configuration
             if (collectionInterface != null)
             {
                 // IReadOnlyCollection<T> is guaranteed to have exactly one parameter
-                return BindToCollection(type, config, options);
+                return BindToCollection(typeInfo, config, options);
             }
 
             collectionInterface = FindOpenGenericInterface(typeof(ICollection<>), type);
             if (collectionInterface != null)
             {
                 // ICollection<T> is guaranteed to have exactly one parameter
-                return BindToCollection(type, config, options);
+                return BindToCollection(typeInfo, config, options);
             }
 
             collectionInterface = FindOpenGenericInterface(typeof(IEnumerable<>), type);
             if (collectionInterface != null)
             {
                 // IEnumerable<T> is guaranteed to have exactly one parameter
-                return BindToCollection(type, config, options);
+                return BindToCollection(typeInfo, config, options);
             }
 
             return null;
@@ -349,24 +349,26 @@ namespace Microsoft.Extensions.Configuration
 
         private static object CreateInstance(Type type)
         {
-            if (type.IsInterface || type.IsAbstract)
+            TypeInfo typeInfo = type.GetTypeInfo();
+
+            if (typeInfo.IsInterface || typeInfo.IsAbstract)
             {
                 throw new InvalidOperationException(SR.Format(SR.Error_CannotActivateAbstractOrInterface, type));
             }
 
             if (type.IsArray)
             {
-                if (type.GetArrayRank() > 1)
+                if (typeInfo.GetArrayRank() > 1)
                 {
                     throw new InvalidOperationException(SR.Format(SR.Error_UnsupportedMultidimensionalArray, type));
                 }
 
-                return Array.CreateInstance(type.GetElementType(), 0);
+                return Array.CreateInstance(typeInfo.GetElementType(), 0);
             }
 
-            if (!type.IsValueType)
+            if (!typeInfo.IsValueType)
             {
-                bool hasDefaultConstructor = type.GetConstructors(DeclaredOnlyLookup).Any(ctor => ctor.IsPublic && ctor.GetParameters().Length == 0);
+                bool hasDefaultConstructor = typeInfo.DeclaredConstructors.Any(ctor => ctor.IsPublic && ctor.GetParameters().Length == 0);
                 if (!hasDefaultConstructor)
                 {
                     throw new InvalidOperationException(SR.Format(SR.Error_MissingParameterlessConstructor, type));
@@ -385,10 +387,12 @@ namespace Microsoft.Extensions.Configuration
 
         private static void BindDictionary(object dictionary, Type dictionaryType, IConfiguration config, BinderOptions options)
         {
+            TypeInfo typeInfo = dictionaryType.GetTypeInfo();
+
             // IDictionary<K,V> is guaranteed to have exactly two parameters
-            Type keyType = dictionaryType.GenericTypeArguments[0];
-            Type valueType = dictionaryType.GenericTypeArguments[1];
-            bool keyTypeIsEnum = keyType.IsEnum;
+            Type keyType = typeInfo.GenericTypeArguments[0];
+            Type valueType = typeInfo.GenericTypeArguments[1];
+            bool keyTypeIsEnum = keyType.GetTypeInfo().IsEnum;
 
             if (keyType != typeof(string) && !keyTypeIsEnum)
             {
@@ -396,7 +400,7 @@ namespace Microsoft.Extensions.Configuration
                 return;
             }
 
-            PropertyInfo setter = dictionaryType.GetProperty("Item", DeclaredOnlyLookup);
+            PropertyInfo setter = typeInfo.GetDeclaredProperty("Item");
             foreach (IConfigurationSection child in config.GetChildren())
             {
                 object item = BindInstance(
@@ -422,9 +426,11 @@ namespace Microsoft.Extensions.Configuration
 
         private static void BindCollection(object collection, Type collectionType, IConfiguration config, BinderOptions options)
         {
+            TypeInfo typeInfo = collectionType.GetTypeInfo();
+
             // ICollection<T> is guaranteed to have exactly one parameter
-            Type itemType = collectionType.GenericTypeArguments[0];
-            MethodInfo addMethod = collectionType.GetMethod("Add", DeclaredOnlyLookup);
+            Type itemType = typeInfo.GenericTypeArguments[0];
+            MethodInfo addMethod = typeInfo.GetDeclaredMethod("Add");
 
             foreach (IConfigurationSection section in config.GetChildren())
             {
@@ -491,7 +497,7 @@ namespace Microsoft.Extensions.Configuration
                 return true;
             }
 
-            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
+            if (type.GetTypeInfo().IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
             {
                 if (string.IsNullOrEmpty(value))
                 {
@@ -544,16 +550,17 @@ namespace Microsoft.Extensions.Configuration
 
         private static Type FindOpenGenericInterface(Type expected, Type actual)
         {
-            if (actual.IsGenericType &&
+            TypeInfo actualTypeInfo = actual.GetTypeInfo();
+            if (actualTypeInfo.IsGenericType &&
                 actual.GetGenericTypeDefinition() == expected)
             {
                 return actual;
             }
 
-            Type[] interfaces = actual.GetInterfaces();
+            IEnumerable<Type> interfaces = actualTypeInfo.ImplementedInterfaces;
             foreach (Type interfaceType in interfaces)
             {
-                if (interfaceType.IsGenericType &&
+                if (interfaceType.GetTypeInfo().IsGenericType &&
                     interfaceType.GetGenericTypeDefinition() == expected)
                 {
                     return interfaceType;
@@ -562,16 +569,16 @@ namespace Microsoft.Extensions.Configuration
             return null;
         }
 
-        private static IEnumerable<PropertyInfo> GetAllProperties(Type type)
+        private static IEnumerable<PropertyInfo> GetAllProperties(TypeInfo type)
         {
             var allProperties = new List<PropertyInfo>();
 
             do
             {
-                allProperties.AddRange(type.GetProperties(DeclaredOnlyLookup));
-                type = type.BaseType;
+                allProperties.AddRange(type.DeclaredProperties);
+                type = type.BaseType.GetTypeInfo();
             }
-            while (type != typeof(object));
+            while (type != typeof(object).GetTypeInfo());
 
             return allProperties;
         }

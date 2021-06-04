@@ -112,7 +112,7 @@ namespace System.IO.MemoryMappedFiles.Tests
             // due to differences in OS behaviors and Unix not actually having a notion of
             // a view separate from a map.  It could also come from CreateNew, depending
             // on what backing store is being used.
-            AssertExtensions.ThrowsAny<IOException, ArgumentOutOfRangeException>(() =>
+            Assert.Throws<IOException>(() =>
             {
                 using (MemoryMappedFile mmf = MemoryMappedFile.CreateNew(null, (IntPtr.Size == 4) ? uint.MaxValue : long.MaxValue))
                 {

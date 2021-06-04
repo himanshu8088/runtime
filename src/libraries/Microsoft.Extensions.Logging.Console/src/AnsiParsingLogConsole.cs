@@ -3,11 +3,9 @@
 
 using System;
 using System.IO;
-using System.Runtime.Versioning;
 
 namespace Microsoft.Extensions.Logging.Console
 {
-    [UnsupportedOSPlatform("browser")]
     internal class AnsiParsingLogConsole : IConsole
     {
         private readonly TextWriter _textWriter;
@@ -57,7 +55,7 @@ namespace Microsoft.Extensions.Logging.Console
 
         private void WriteToConsole(string message, int startIndex, int length, ConsoleColor? background, ConsoleColor? foreground)
         {
-            ReadOnlySpan<char> span = message.AsSpan(startIndex, length);
+            ReadOnlySpan<char> span = message.AsSpan().Slice(startIndex, length);
             var colorChanged = SetColor(background, foreground);
 #if NETCOREAPP
             _textWriter.Write(span);

@@ -64,6 +64,7 @@ namespace System.Threading.Tasks
         /// cref="System.Threading.Tasks.TaskScheduler.Current">TaskScheduler.Current</see>).
         /// </remarks>
         public TaskFactory()
+            : this(default, TaskCreationOptions.None, TaskContinuationOptions.None, null)
         {
         }
 
@@ -84,8 +85,8 @@ namespace System.Threading.Tasks
         /// cref="System.Threading.Tasks.TaskScheduler.Current">TaskScheduler.Current</see>).
         /// </remarks>
         public TaskFactory(CancellationToken cancellationToken)
+            : this(cancellationToken, TaskCreationOptions.None, TaskContinuationOptions.None, null)
         {
-            m_defaultCancellationToken = cancellationToken;
         }
 
         /// <summary>
@@ -108,8 +109,8 @@ namespace System.Threading.Tasks
         /// cref="System.Threading.Tasks.TaskScheduler.Current">TaskScheduler.Current</see>).
         /// </remarks>
         public TaskFactory(TaskScheduler? scheduler) // null means to use TaskScheduler.Current
+            : this(default, TaskCreationOptions.None, TaskContinuationOptions.None, scheduler)
         {
-            m_defaultScheduler = scheduler;
         }
 
         /// <summary>
@@ -139,12 +140,8 @@ namespace System.Threading.Tasks
         /// cref="System.Threading.Tasks.TaskScheduler.Current">TaskScheduler.Current</see>).
         /// </remarks>
         public TaskFactory(TaskCreationOptions creationOptions, TaskContinuationOptions continuationOptions)
+            : this(default, creationOptions, continuationOptions, null)
         {
-            TaskFactory.CheckMultiTaskContinuationOptions(continuationOptions);
-            TaskFactory.CheckCreationOptions(creationOptions);
-
-            m_defaultCreationOptions = creationOptions;
-            m_defaultContinuationOptions = continuationOptions;
         }
 
         /// <summary>
@@ -183,10 +180,14 @@ namespace System.Threading.Tasks
         /// cref="System.Threading.Tasks.TaskScheduler.Current">TaskScheduler.Current</see>).
         /// </remarks>
         public TaskFactory(CancellationToken cancellationToken, TaskCreationOptions creationOptions, TaskContinuationOptions continuationOptions, TaskScheduler? scheduler)
-            : this(creationOptions, continuationOptions)
         {
+            TaskFactory.CheckMultiTaskContinuationOptions(continuationOptions);
+            TaskFactory.CheckCreationOptions(creationOptions);
+
             m_defaultCancellationToken = cancellationToken;
             m_defaultScheduler = scheduler;
+            m_defaultCreationOptions = creationOptions;
+            m_defaultContinuationOptions = continuationOptions;
         }
 
         /* Properties */
@@ -676,7 +677,6 @@ namespace System.Threading.Tasks
             }
             else
             {
-#pragma warning disable CA1416 // Validate platform compatibility, issue: https://github.com/dotnet/runtime/issues/44544
                 ThreadPool.RegisterWaitForSingleObject(
                     asyncResult.AsyncWaitHandle,
                     delegate
@@ -687,7 +687,6 @@ namespace System.Threading.Tasks
                     null,
                     Timeout.Infinite,
                     true);
-#pragma warning restore CA1416
             }
 
             return promise;

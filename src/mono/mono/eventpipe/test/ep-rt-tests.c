@@ -1,5 +1,5 @@
-#include <eventpipe/ep.h>
-#include <eglib/test/test.h>
+#include "mono/eventpipe/ep.h"
+#include "eglib/test/test.h"
 
 #ifdef _CRTDBG_MAP_ALLOC
 static _CrtMemState eventpipe_memory_start_snapshot;

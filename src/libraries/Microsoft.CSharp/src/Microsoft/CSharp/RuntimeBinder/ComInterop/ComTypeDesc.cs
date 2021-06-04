@@ -25,6 +25,7 @@ namespace Microsoft.CSharp.RuntimeBinder.ComInterop
             TypeLib = typeLibDesc;
         }
 
+
         internal static ComTypeDesc FromITypeInfo(ITypeInfo typeInfo, TYPEATTR typeAttr)
         {
             switch (typeAttr.typekind)

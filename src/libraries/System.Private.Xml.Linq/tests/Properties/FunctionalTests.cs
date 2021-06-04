@@ -24,7 +24,7 @@ namespace CoreXml.Test.XLinq
             }
             module.Execute();
 
-            Assert.False(module.HasFailures, module.GetFailuresInfo());
+            Assert.Equal(0, module.FailCount);
         }
         #region Class
         public partial class PropertiesTests : XLinqTestCase

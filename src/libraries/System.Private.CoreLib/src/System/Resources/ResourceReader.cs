@@ -27,16 +27,26 @@ namespace System.Resources
     // default file format.
     //
 
-    internal readonly struct ResourceLocator
+    internal struct ResourceLocator
     {
+        internal object? _value;  // Can be null.
+        internal int _dataPos;
+
         internal ResourceLocator(int dataPos, object? value)
         {
-            DataPosition = dataPos;
-            Value = value;
+            _dataPos = dataPos;
+            _value = value;
         }
 
-        internal int DataPosition { get; }
-        internal object? Value { get; }
+        internal int DataPosition => _dataPos;
+
+        // Allows adding in profiling data in a future version, or a special
+        // resource profiling build.  We could also use WeakReference.
+        internal object? Value
+        {
+            get => _value;
+            set => _value = value;
+        }
 
         internal static bool CanCache(ResourceTypeCode value)
         {
@@ -790,12 +800,8 @@ namespace System.Resources
             // Read RuntimeResourceSet header
             // Do file version check
             int version = _store.ReadInt32();
-
-            // File format version number
-            const int CurrentVersion = 2;
-
-            if (version != CurrentVersion && version != 1)
-                throw new ArgumentException(SR.Format(SR.Arg_ResourceFileUnsupportedVersion, CurrentVersion, version));
+            if (version != RuntimeResourceSet.Version && version != 1)
+                throw new ArgumentException(SR.Format(SR.Arg_ResourceFileUnsupportedVersion, RuntimeResourceSet.Version, version));
             _version = version;
 
             _numResources = _store.ReadInt32();
@@ -950,7 +956,7 @@ namespace System.Resources
                 }
             }
             Debug.Assert(_typeTable[typeIndex] != null, "Should have found a type!");
-            return _typeTable[typeIndex]!;
+            return _typeTable[typeIndex]!; // TODO-NULLABLE: Indexer nullability tracked (https://github.com/dotnet/roslyn/issues/34644)
         }
 
         private string TypeNameFromTypeCode(ResourceTypeCode typeCode)

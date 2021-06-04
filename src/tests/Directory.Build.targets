@@ -275,7 +275,6 @@
       <RunTimeDependencyCopyLocalFile Include="@(AllResolvedRuntimeDependencies)"  Exclude="@(RunTimeDependencyExcludeFiles)"/>
       <RunTimeDependencyCopyLocal Include="@(RunTimeDependencyCopyLocalFile -> '%(File)')"  />
       <RunTimeDependencyCopyLocal Include="$(TargetingPackPath)/*" />
-      <RunTimeDependencyCopyLocal Include="$(TargetingPackPath)/xunit.*" TargetDir="xunit/" />
     </ItemGroup>
 
     <ItemGroup>
@@ -316,9 +315,6 @@
       <RunTimeArtifactsIncludeFolders Include="R2RTest/">
         <IncludeSubFolders>True</IncludeSubFolders>
       </RunTimeArtifactsIncludeFolders>
-
-      <!-- XUnit runner harness assemblies that we don't want to mix in with the framework in Core_Root -->
-      <RunTimeArtifactsIncludeFolders Include="xunit/" />
     </ItemGroup>
 
     <ItemGroup>
@@ -356,7 +352,7 @@
 
         <!-- Wasm App Builder always builds in Debug -->
         <RunTimeDependencyCopyLocal
-          Include="$(ArtifactsBinDir)\WasmAppBuilder\Debug\$(NetCoreAppToolCurrent)\publish\**"
+          Include="$(ArtifactsBinDir)\WasmAppBuilder\Debug\$(NetCoreAppCurrent)\publish\**"
           TargetDir="WasmAppBuilder/"/>
 
         <RunTimeDependencyCopyLocal

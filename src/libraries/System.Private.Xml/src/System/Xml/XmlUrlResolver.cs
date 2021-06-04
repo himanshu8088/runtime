@@ -22,13 +22,11 @@ namespace System.Xml
 
         public XmlUrlResolver() { }
 
-        [UnsupportedOSPlatform("browser")]
         public override ICredentials? Credentials
         {
             set { _credentials = value; }
         }
 
-        [UnsupportedOSPlatform("browser")]
         public IWebProxy? Proxy
         {
             set { _proxy = value; }

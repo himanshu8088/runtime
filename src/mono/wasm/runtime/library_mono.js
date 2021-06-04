@@ -73,19 +73,18 @@ var MonoSupportLib = {
 		},
 
 		export_functions: function (module) {
-			module ["pump_message"] = MONO.pump_message.bind(MONO);
-			module ["mono_load_runtime_and_bcl"] = MONO.mono_load_runtime_and_bcl.bind(MONO);
-			module ["mono_load_runtime_and_bcl_args"] = MONO.mono_load_runtime_and_bcl_args.bind(MONO);
-			module ["mono_wasm_load_bytes_into_heap"] = MONO.mono_wasm_load_bytes_into_heap.bind(MONO);
-			module ["mono_wasm_load_icu_data"] = MONO.mono_wasm_load_icu_data.bind(MONO);
-			module ["mono_wasm_get_icudt_name"] = MONO.mono_wasm_get_icudt_name.bind(MONO);
-			module ["mono_wasm_globalization_init"] = MONO.mono_wasm_globalization_init.bind(MONO);
-			module ["mono_wasm_get_loaded_files"] = MONO.mono_wasm_get_loaded_files.bind(MONO);
-			module ["mono_wasm_new_root_buffer"] = MONO.mono_wasm_new_root_buffer.bind(MONO);
-			module ["mono_wasm_new_root_buffer_from_pointer"] = MONO.mono_wasm_new_root_buffer_from_pointer.bind(MONO);
-			module ["mono_wasm_new_root"] = MONO.mono_wasm_new_root.bind(MONO);
-			module ["mono_wasm_new_roots"] = MONO.mono_wasm_new_roots.bind(MONO);
-			module ["mono_wasm_release_roots"] = MONO.mono_wasm_release_roots.bind(MONO);
+			module ["pump_message"] = MONO.pump_message;
+			module ["mono_load_runtime_and_bcl"] = MONO.mono_load_runtime_and_bcl;
+			module ["mono_load_runtime_and_bcl_args"] = MONO.mono_load_runtime_and_bcl_args;
+			module ["mono_wasm_load_bytes_into_heap"] = MONO.mono_wasm_load_bytes_into_heap;
+			module ["mono_wasm_load_icu_data"] = MONO.mono_wasm_load_icu_data;
+			module ["mono_wasm_get_icudt_name"] = MONO.mono_wasm_get_icudt_name;
+			module ["mono_wasm_globalization_init"] = MONO.mono_wasm_globalization_init;
+			module ["mono_wasm_get_loaded_files"] = MONO.mono_wasm_get_loaded_files;
+			module ["mono_wasm_new_root_buffer"] = MONO.mono_wasm_new_root_buffer;
+			module ["mono_wasm_new_root"] = MONO.mono_wasm_new_root;
+			module ["mono_wasm_new_roots"] = MONO.mono_wasm_new_roots;
+			module ["mono_wasm_release_roots"] = MONO.mono_wasm_release_roots;
 		},
 
 		_base64Converter: {
@@ -196,12 +195,9 @@ var MonoSupportLib = {
 		},
 
 		_mono_wasm_root_buffer_prototype: {
-			_throw_index_out_of_range: function () {
-				throw new Error ("index out of range");
-			},
 			_check_in_range: function (index) {
 				if ((index >= this.__count) || (index < 0))
-					this._throw_index_out_of_range();
+					throw new Error ("index out of range");
 			},
 			/** @returns {NativePointer} */
 			get_address: function (index) {
@@ -219,37 +215,23 @@ var MonoSupportLib = {
 				return Module.HEAP32[this.get_address_32 (index)];
 			},
 			set: function (index, value) {
+				this._check_in_range (index);
 				Module.HEAP32[this.get_address_32 (index)] = value;
 				return value;
 			},
-			_unsafe_get: function (index) {
-				return Module.HEAP32[this.__offset32 + index];
-			},
-			_unsafe_set: function (index, value) {
-				Module.HEAP32[this.__offset32 + index] = value;
-			},
-			clear: function () {
-				if (this.__offset)
-					MONO._zero_region (this.__offset, this.__count * 4);
-			},
 			release: function () {
-				if (this.__offset && this.__ownsAllocation) {
+				if (this.__offset) {
 					MONO.mono_wasm_deregister_root (this.__offset);
 					MONO._zero_region (this.__offset, this.__count * 4);
 					Module._free (this.__offset);
 				}
 
-				this.__handle = this.__offset = this.__count = this.__offset32 = 0;
+				this.__handle = this.__offset = this.__count = this.__offset32 = undefined;
 			},
-			toString: function () {
-				return "[root buffer @" + this.get_address (0) + ", size " + this.__count + "]";
-			}
 		},
 
 		_scratch_root_buffer: null,
 		_scratch_root_free_indices: null,
-		_scratch_root_free_indices_count: 0,
-		_scratch_root_free_instances: [],
 
 		_mono_wasm_root_prototype: {
 			/** @returns {NativePointer} */
@@ -262,33 +244,21 @@ var MonoSupportLib = {
 			},
 			/** @returns {ManagedPointer} */
 			get: function () {
-				var result = this.__buffer._unsafe_get (this.__index);
+				var result = this.__buffer.get (this.__index);
 				return result;
 			},
 			set: function (value) {
-				this.__buffer._unsafe_set (this.__index, value);
+				this.__buffer.set (this.__index, value);
 				return value;
 			},
 			/** @returns {ManagedPointer} */
 			valueOf: function () {
 				return this.get ();
 			},
-			clear: function () {
-				this.set (0);
-			},
 			release: function () {
-				const maxPooledInstances = 128;
-				if (MONO._scratch_root_free_instances.length > maxPooledInstances) {
-					MONO._mono_wasm_release_scratch_index (this.__index);
-					this.__buffer = 0;
-					this.__index = 0;
-				} else {
-					this.set (0);
-					MONO._scratch_root_free_instances.push (this);
-				}
-			},
-			toString: function () {
-				return "[root @" + this.get_address () + "]";
+				MONO._mono_wasm_release_scratch_index (this.__index);
+				this.__buffer = undefined;
+				this.__index = undefined;
 			}
 		},
 
@@ -297,8 +267,7 @@ var MonoSupportLib = {
 				return;
 
 			this._scratch_root_buffer.set (index, 0);
-			this._scratch_root_free_indices[this._scratch_root_free_indices_count] = index;
-			this._scratch_root_free_indices_count++;
+			this._scratch_root_free_indices.push (index);
 		},
 
 		_mono_wasm_claim_scratch_index: function () {
@@ -306,10 +275,10 @@ var MonoSupportLib = {
 				const maxScratchRoots = 8192;
 				this._scratch_root_buffer = this.mono_wasm_new_root_buffer (maxScratchRoots, "js roots");
 
-				this._scratch_root_free_indices = new Int32Array (maxScratchRoots);
-				this._scratch_root_free_indices_count = maxScratchRoots;
+				this._scratch_root_free_indices = new Array (maxScratchRoots);
 				for (var i = 0; i < maxScratchRoots; i++)
-					this._scratch_root_free_indices[i] = maxScratchRoots - i - 1;
+					this._scratch_root_free_indices[i] = i;
+				this._scratch_root_free_indices.reverse ();
 
 				Object.defineProperty (this._mono_wasm_root_prototype, "value", {
 					get: this._mono_wasm_root_prototype.get,
@@ -318,19 +287,15 @@ var MonoSupportLib = {
 				});
 			}
 
-			if (this._scratch_root_free_indices_count < 1)
+			if (this._scratch_root_free_indices.length < 1)
 				throw new Error ("Out of scratch root space");
 
-			var result = this._scratch_root_free_indices[this._scratch_root_free_indices_count - 1];
-			this._scratch_root_free_indices_count--;
+			var result = this._scratch_root_free_indices.pop ();
 			return result;
 		},
 
 		_zero_region: function (byteOffset, sizeBytes) {
-			if (((byteOffset % 4) === 0) && ((sizeBytes % 4) === 0))
-				Module.HEAP32.fill(0, byteOffset / 4, sizeBytes / 4);
-			else
-				Module.HEAP8.fill(0, byteOffset, sizeBytes);
+			(new Uint8Array (Module.HEAPU8.buffer, byteOffset, sizeBytes)).fill (0);
 		},
 
 		/**
@@ -366,43 +331,6 @@ var MonoSupportLib = {
 			result.__count = capacity;
 			result.length = capacity;
 			result.__handle = this.mono_wasm_register_root (offset, capacityBytes, msg || 0);
-			result.__ownsAllocation = true;
-
-			return result;
-		},
-
-		/**
-		 * Creates a root buffer object representing an existing allocation in the native heap and registers
-		 *  the allocation with the GC. The caller is responsible for managing the lifetime of the allocation.
-		 * @param {NativePointer} offset - the offset of the root buffer in the native heap.
-		 * @param {number} capacity - the maximum number of elements the buffer can hold.
-		 * @param {string} [msg] - a description of the root buffer (for debugging)
-		 * @returns {WasmRootBuffer}
-		 */
-		mono_wasm_new_root_buffer_from_pointer: function (offset, capacity, msg) {
-			if (!this.mono_wasm_register_root || !this.mono_wasm_deregister_root) {
-				this.mono_wasm_register_root = Module.cwrap ("mono_wasm_register_root", "number", ["number", "number", "string"]);
-				this.mono_wasm_deregister_root = Module.cwrap ("mono_wasm_deregister_root", null, ["number"]);
-			}
-
-			if (capacity <= 0)
-				throw new Error ("capacity >= 1");
-
-			capacity = capacity | 0;
-				
-			var capacityBytes = capacity * 4;
-			if ((offset % 4) !== 0)
-				throw new Error ("Unaligned offset");
-
-			this._zero_region (offset, capacityBytes);
-
-			var result = Object.create (this._mono_wasm_root_buffer_prototype);
-			result.__offset = offset;
-			result.__offset32 = (offset / 4) | 0;
-			result.__count = capacity;	
-			result.length = capacity;
-			result.__handle = this.mono_wasm_register_root (offset, capacityBytes, msg || 0);
-			result.__ownsAllocation = false;
 
 			return result;
 		},
@@ -417,18 +345,12 @@ var MonoSupportLib = {
 		 * @returns {WasmRoot}
 		 */
 		mono_wasm_new_root: function (value) {
-			var result;
+			var index = this._mono_wasm_claim_scratch_index ();
+			var buffer = this._scratch_root_buffer;
 
-			if (this._scratch_root_free_instances.length > 0) {
-				result = this._scratch_root_free_instances.pop ();
-			} else {
-				var index = this._mono_wasm_claim_scratch_index ();
-				var buffer = this._scratch_root_buffer;
-					
-				result = Object.create (this._mono_wasm_root_prototype);
-				result.__buffer = buffer;
-				result.__index = index;
-			}
+			var result = Object.create (this._mono_wasm_root_prototype);
+			result.__buffer = buffer;
+			result.__index = index;
 
 			if (value !== undefined) {
 				if (typeof (value) !== "number")
@@ -1731,11 +1653,6 @@ var MonoSupportLib = {
 				load_runtime ("unused", args.debug_level);
 			}
 
-			let tz;
-			try {
-				tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-			} catch {}
-			MONO.mono_wasm_setenv ("TZ", tz || "UTC");
 			MONO.mono_wasm_runtime_ready ();
 			args.loaded_cb ();
 		},
@@ -2243,7 +2160,7 @@ var MonoSupportLib = {
 			manifest.filter(m => {
 				var file = m[0];
 				var last = file.lastIndexOf ("/");
-				var directory = file.slice (0, last+1);
+				var directory = file.slice (0, last);
 				folders.add(directory);
 			});
 			folders.forEach(folder => {

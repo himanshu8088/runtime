@@ -10,7 +10,7 @@ namespace System.Diagnostics.Tests
 {
     public static class CounterSampleCalculatorTests
     {
-        [ConditionalFact(typeof(Helpers), nameof(Helpers.IsElevatedAndCanWriteAndReadNetPerfCounters))]
+        [ConditionalFact(typeof(Helpers), nameof(Helpers.IsElevatedAndCanWriteToPerfCounters))]
         public static void CounterSampleCalculator_ElapsedTime()
         {
             var name = nameof(CounterSampleCalculator_ElapsedTime) + "_Counter";

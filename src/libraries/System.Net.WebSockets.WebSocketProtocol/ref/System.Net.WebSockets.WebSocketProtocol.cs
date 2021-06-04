@@ -6,7 +6,6 @@
 
 namespace System.Net.WebSockets
 {
-    [System.Runtime.Versioning.UnsupportedOSPlatform("browser")]
     public static partial class WebSocketProtocol
     {
         public static System.Net.WebSockets.WebSocket CreateFromStream(System.IO.Stream stream, bool isServer, string? subProtocol, System.TimeSpan keepAliveInterval) { throw null; }

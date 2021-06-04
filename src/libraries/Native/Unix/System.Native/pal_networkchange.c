@@ -68,9 +68,12 @@ static NetworkChangeKind ReadNewLinkMessage(struct nlmsghdr* hdr)
     assert(hdr != NULL);
     struct ifinfomsg* ifimsg;
     ifimsg = (struct ifinfomsg*)NLMSG_DATA(hdr);
-    if (ifimsg->ifi_family == AF_UNSPEC)
+    if (ifimsg->ifi_family == AF_INET)
     {
-        return AvailabilityChanged;
+        if ((ifimsg->ifi_flags & IFF_UP) != 0)
+        {
+            return LinkAdded;
+        }
     }
 
     return None;
@@ -107,6 +110,9 @@ void SystemNative_ReadEvents(int32_t sock, NetworkChangeEvent onNetworkChange)
                 break;
             case RTM_NEWLINK:
                 onNetworkChange(sock, ReadNewLinkMessage(hdr));
+                break;
+            case RTM_DELLINK:
+                onNetworkChange(sock, LinkRemoved);
                 break;
             case RTM_NEWROUTE:
             case RTM_DELROUTE:

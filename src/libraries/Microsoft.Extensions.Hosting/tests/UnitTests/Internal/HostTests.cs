@@ -1227,7 +1227,6 @@ namespace Microsoft.Extensions.Hosting.Internal
         public async Task BackgroundServiceAsyncExceptionGetsLogged()
         {
             using TestEventListener listener = new TestEventListener();
-            var backgroundDelayTaskSource = new TaskCompletionSource<bool>();
 
             using IHost host = CreateBuilder()
                 .ConfigureLogging(logging =>
@@ -1236,11 +1235,9 @@ namespace Microsoft.Extensions.Hosting.Internal
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
-                    services.AddHostedService(sp => new AsyncThrowingService(backgroundDelayTaskSource.Task));
+                    services.AddHostedService<AsyncThrowingService>();
                 })
                 .Start();
-
-            backgroundDelayTaskSource.SetResult(true);
 
             // give the background service 1 minute to log the failure
             TimeSpan timeout = TimeSpan.FromMinutes(1);
@@ -1373,16 +1370,9 @@ namespace Microsoft.Extensions.Hosting.Internal
 
         private class AsyncThrowingService : BackgroundService
         {
-            private readonly Task _executeDelayTask;
-
-            public AsyncThrowingService(Task executeDelayTask)
-            {
-                _executeDelayTask = executeDelayTask;
-            }
-
             protected override async Task ExecuteAsync(CancellationToken stoppingToken)
             {
-                await _executeDelayTask;
+                await Task.Delay(1);
 
                 throw new Exception("Background Exception");
             }

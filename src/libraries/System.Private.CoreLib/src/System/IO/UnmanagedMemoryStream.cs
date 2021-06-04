@@ -392,29 +392,31 @@ namespace System.IO
 
             unsafe
             {
-                if (_buffer != null)
+                fixed (byte* pBuffer = &MemoryMarshal.GetReference(buffer))
                 {
-                    byte* pointer = null;
+                    if (_buffer != null)
+                    {
+                        byte* pointer = null;
 
-                    try
-                    {
-                        _buffer.AcquirePointer(ref pointer);
-                        Buffer.Memmove(ref MemoryMarshal.GetReference(buffer), ref *(pointer + pos + _offset), (nuint)nInt);
-                    }
-                    finally
-                    {
-                        if (pointer != null)
+                        try
                         {
-                            _buffer.ReleasePointer();
+                            _buffer.AcquirePointer(ref pointer);
+                            Buffer.Memcpy(pBuffer, pointer + pos + _offset, nInt);
+                        }
+                        finally
+                        {
+                            if (pointer != null)
+                            {
+                                _buffer.ReleasePointer();
+                            }
                         }
                     }
-                }
-                else
-                {
-                    Buffer.Memmove(ref MemoryMarshal.GetReference(buffer), ref *(_mem + pos), (nuint)nInt);
+                    else
+                    {
+                        Buffer.Memcpy(pBuffer, _mem + pos, nInt);
+                    }
                 }
             }
-
             Interlocked.Exchange(ref _position, pos + n);
             return nInt;
         }
@@ -665,31 +667,34 @@ namespace System.IO
                 }
             }
 
-            if (_buffer != null)
+            fixed (byte* pBuffer = &MemoryMarshal.GetReference(buffer))
             {
-                long bytesLeft = _capacity - pos;
-                if (bytesLeft < buffer.Length)
+                if (_buffer != null)
                 {
-                    throw new ArgumentException(SR.Arg_BufferTooSmall);
-                }
-
-                byte* pointer = null;
-                try
-                {
-                    _buffer.AcquirePointer(ref pointer);
-                    Buffer.Memmove(ref *(pointer + pos + _offset), ref MemoryMarshal.GetReference(buffer), (nuint)buffer.Length);
-                }
-                finally
-                {
-                    if (pointer != null)
+                    long bytesLeft = _capacity - pos;
+                    if (bytesLeft < buffer.Length)
                     {
-                        _buffer.ReleasePointer();
+                        throw new ArgumentException(SR.Arg_BufferTooSmall);
+                    }
+
+                    byte* pointer = null;
+                    try
+                    {
+                        _buffer.AcquirePointer(ref pointer);
+                        Buffer.Memcpy(pointer + pos + _offset, pBuffer, buffer.Length);
+                    }
+                    finally
+                    {
+                        if (pointer != null)
+                        {
+                            _buffer.ReleasePointer();
+                        }
                     }
                 }
-            }
-            else
-            {
-                Buffer.Memmove(ref *(_mem + pos), ref MemoryMarshal.GetReference(buffer), (nuint)buffer.Length);
+                else
+                {
+                    Buffer.Memcpy(_mem + pos, pBuffer, buffer.Length);
+                }
             }
 
             Interlocked.Exchange(ref _position, n);

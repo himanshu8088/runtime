@@ -73,7 +73,4 @@ mono_cominterop_get_com_interface (MonoObject* object, MonoClass* ic, MonoError 
 gboolean
 mono_cominterop_is_interface (MonoClass* klass);
 
-gboolean
-mono_cominterop_method_com_visible (MonoMethod *method);
-
 #endif /* __MONO_COMINTEROP_H__ */

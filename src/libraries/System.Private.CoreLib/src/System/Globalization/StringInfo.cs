@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Unicode;
 
@@ -94,52 +95,16 @@ namespace System.Globalization
             return String[start..end];
         }
 
-        /// <summary>
-        /// Returns the first text element (extended grapheme cluster) that occurs in the input string.
-        /// </summary>
-        /// <param name="str">The input string to analyze.</param>
-        /// <returns>The substring corresponding to the first text element within <paramref name="str"/>,
-        /// or the empty string if <paramref name="str"/> is empty.</returns>
-        /// <exception cref="ArgumentNullException"><paramref name="str"/> is null.</exception>
         public static string GetNextTextElement(string str) => GetNextTextElement(str, 0);
 
         /// <summary>
-        /// Returns the first text element (extended grapheme cluster) that occurs in the input string
-        /// starting at the specified index.
+        /// Returns the str containing the next text element in str starting at
+        /// index index. If index is not supplied, then it will start at the beginning
+        /// of str. It recognizes a base character plus one or more combining
+        /// characters or a properly formed surrogate pair as a text element.
+        /// See also the ParseCombiningCharacters() and the ParseSurrogates() methods.
         /// </summary>
-        /// <param name="str">The input string to analyze.</param>
-        /// <param name="index">The char offset in <paramref name="str"/> at which to begin analysis.</param>
-        /// <returns>The substring corresponding to the first text element within <paramref name="str"/> starting
-        /// at index <paramref name="index"/>, or the empty string if <paramref name="index"/> corresponds to
-        /// the end of <paramref name="str"/>.</returns>
-        /// <exception cref="ArgumentNullException"><paramref name="str"/> is null.</exception>
-        /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is negative or beyond the end of <paramref name="str"/>.</exception>
         public static string GetNextTextElement(string str, int index)
-        {
-            int nextTextElementLength = GetNextTextElementLength(str, index);
-            return str.Substring(index, nextTextElementLength);
-        }
-
-        /// <summary>
-        /// Returns the length of the first text element (extended grapheme cluster) that occurs in the input string.
-        /// </summary>
-        /// <param name="str">The input string to analyze.</param>
-        /// <returns>The length (in chars) of the substring corresponding to the first text element within <paramref name="str"/>,
-        /// or 0 if <paramref name="str"/> is empty.</returns>
-        /// <exception cref="ArgumentNullException"><paramref name="str"/> is null.</exception>
-        public static int GetNextTextElementLength(string str) => GetNextTextElementLength(str, 0);
-
-        /// <summary>
-        /// Returns the length of the first text element (extended grapheme cluster) that occurs in the input string
-        /// starting at the specified index.
-        /// </summary>
-        /// <param name="str">The input string to analyze.</param>
-        /// <param name="index">The char offset in <paramref name="str"/> at which to begin analysis.</param>
-        /// <returns>The length (in chars) of the substring corresponding to the first text element within <paramref name="str"/> starting
-        /// at index <paramref name="index"/>, or 0 if <paramref name="index"/> corresponds to the end of <paramref name="str"/>.</returns>
-        /// <exception cref="ArgumentNullException"><paramref name="str"/> is null.</exception>
-        /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is negative or beyond the end of <paramref name="str"/>.</exception>
-        public static int GetNextTextElementLength(string str, int index)
         {
             if (str is null)
             {
@@ -150,16 +115,8 @@ namespace System.Globalization
                 ThrowHelper.ThrowArgumentOutOfRange_IndexException();
             }
 
-            return GetNextTextElementLength(str.AsSpan(index));
+            return str.Substring(index, TextSegmentationUtility.GetLengthOfFirstUtf16ExtendedGraphemeCluster(str.AsSpan(index)));
         }
-
-        /// <summary>
-        /// Returns the length of the first text element (extended grapheme cluster) that occurs in the input span.
-        /// </summary>
-        /// <param name="str">The input span to analyze.</param>
-        /// <returns>The length (in chars) of the substring corresponding to the first text element within <paramref name="str"/>,
-        /// or 0 if <paramref name="str"/> is empty.</returns>
-        public static int GetNextTextElementLength(ReadOnlySpan<char> str) => TextSegmentationUtility.GetLengthOfFirstUtf16ExtendedGraphemeCluster(str);
 
         public static TextElementEnumerator GetTextElementEnumerator(string str) => GetTextElementEnumerator(str, 0);
 
@@ -196,19 +153,44 @@ namespace System.Globalization
                 ThrowHelper.ThrowArgumentNullException(ExceptionArgument.str);
             }
 
-            ValueListBuilder<int> builder = new ValueListBuilder<int>(stackalloc int[64]); // 64 arbitrarily chosen
-            ReadOnlySpan<char> remaining = str;
+            // This method is optimized for small-ish strings.
+            // If a large string is seen we'll go down a slower code path.
 
-            while (!remaining.IsEmpty)
+            if (str.Length > 256)
             {
-                builder.Append(str.Length - remaining.Length); // a new extended grapheme cluster begins at this offset
-                remaining = remaining.Slice(GetNextTextElementLength(remaining)); // consume this cluster
+                return ParseCombiningCharactersForLargeString(str);
             }
 
-            int[] retVal = builder.AsSpan().ToArray();
-            builder.Dispose();
+            Span<int> baseOffsets = stackalloc int[str.Length];
+            int graphemeClusterCount = 0;
 
-            return retVal;
+            ReadOnlySpan<char> remaining = str;
+            while (!remaining.IsEmpty)
+            {
+                baseOffsets[graphemeClusterCount++] = str.Length - remaining.Length;
+                remaining = remaining.Slice(TextSegmentationUtility.GetLengthOfFirstUtf16ExtendedGraphemeCluster(remaining));
+            }
+
+            return baseOffsets.Slice(0, graphemeClusterCount).ToArray();
+        }
+
+        private static int[] ParseCombiningCharactersForLargeString(string str)
+        {
+            Debug.Assert(str != null);
+
+            // If we have a large string, we may as well take the hit of using a List<int>
+            // instead of trying the stackalloc optimizations we have for smaller strings.
+
+            List<int> baseOffsets = new List<int>();
+
+            ReadOnlySpan<char> remaining = str;
+            while (!remaining.IsEmpty)
+            {
+                baseOffsets.Add(str.Length - remaining.Length);
+                remaining = remaining.Slice(TextSegmentationUtility.GetLengthOfFirstUtf16ExtendedGraphemeCluster(remaining));
+            }
+
+            return baseOffsets.ToArray();
         }
     }
 }

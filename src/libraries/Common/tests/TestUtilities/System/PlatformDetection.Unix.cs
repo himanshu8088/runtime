@@ -164,7 +164,7 @@ namespace System
                 // What we want is major release as minor releases should be compatible.
                 result.VersionId = ToVersion(RuntimeInformation.OSDescription.Split()[1].Split('.')[0]);
             }
-            else if (Isillumos)
+            else if (IsIllumos)
             {
                 // examples:
                 //   on OmniOS
@@ -195,8 +195,7 @@ namespace System
                 // example:
                 //   SunOS 5.11 11.3
                 result.Id = "Solaris";
-                // we only need the major version; 11
-                result.VersionId = ToVersion(RuntimeInformation.OSDescription.Split(' ')[2].Split('.')[0]); // e.g. 11
+                result.VersionId = ToVersion(RuntimeInformation.OSDescription.Split(' ')[2]); // e.g. 11.3
             }
             else if (File.Exists("/etc/os-release"))
             {

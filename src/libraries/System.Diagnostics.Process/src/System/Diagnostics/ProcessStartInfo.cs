@@ -63,9 +63,17 @@ namespace System.Diagnostics
             set => _arguments = value;
         }
 
-        public Collection<string> ArgumentList => _argumentList ??= new Collection<string>();
-
-        internal bool HasArgumentList => _argumentList is not null && _argumentList.Count != 0;
+        public Collection<string> ArgumentList
+        {
+            get
+            {
+                if (_argumentList == null)
+                {
+                    _argumentList = new Collection<string>();
+                }
+                return _argumentList;
+            }
+        }
 
         public bool CreateNoWindow { get; set; }
 
@@ -168,23 +176,25 @@ namespace System.Diagnostics
 
         internal string BuildArguments()
         {
-            if (HasArgumentList)
+            if (_argumentList == null || _argumentList.Count == 0)
             {
-                var arguments = new ValueStringBuilder(stackalloc char[256]);
-                AppendArgumentsTo(ref arguments);
-                return arguments.ToString();
+                return Arguments;
             }
-
-            return Arguments;
+            else
+            {
+                var stringBuilder = new StringBuilder();
+                AppendArgumentsTo(stringBuilder);
+                return stringBuilder.ToString();
+            }
         }
 
-        internal void AppendArgumentsTo(ref ValueStringBuilder stringBuilder)
+        internal void AppendArgumentsTo(StringBuilder stringBuilder)
         {
             if (_argumentList != null && _argumentList.Count > 0)
             {
                 foreach (string argument in _argumentList)
                 {
-                    PasteArguments.AppendArgument(ref stringBuilder, argument);
+                    PasteArguments.AppendArgument(stringBuilder, argument);
                 }
             }
             else if (!string.IsNullOrEmpty(Arguments))

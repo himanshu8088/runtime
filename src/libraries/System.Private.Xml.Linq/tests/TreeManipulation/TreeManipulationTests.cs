@@ -429,7 +429,7 @@ namespace XLinqTests
             module.AddChild(testCase);
             module.Execute();
 
-            Assert.False(module.HasFailures, module.GetFailuresInfo());
+            Assert.Equal(0, module.FailCount);
         }
     }
 }

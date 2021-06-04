@@ -682,8 +682,9 @@ namespace System.Xml
             return content.Item2;
         }
 
-        private async Task<(string, object)> InternalReadContentAsObjectTupleAsync(bool unwrapTypedValue)
+        private async Task<Tuple<string, object>> InternalReadContentAsObjectTupleAsync(bool unwrapTypedValue)
         {
+            Tuple<string, object> tuple;
             string originalStringValue;
 
             XmlNodeType nodeType = this.NodeType;
@@ -698,12 +699,14 @@ namespace System.Xml
                         originalStringValue = (schemaAttr.DefaultValue != null) ? schemaAttr.DefaultValue : schemaAttr.FixedValue!;
                     }
 
-                    return (originalStringValue, ReturnBoxedValue(_attributePSVI.typedAttributeValue, AttributeSchemaInfo.XmlType!, unwrapTypedValue));
+                    tuple = new Tuple<string, object>(originalStringValue, ReturnBoxedValue(_attributePSVI.typedAttributeValue, AttributeSchemaInfo.XmlType!, unwrapTypedValue));
+                    return tuple;
                 }
                 else
                 {
                     // return string value
-                    return (originalStringValue, this.Value);
+                    tuple = new Tuple<string, object>(originalStringValue, this.Value);
+                    return tuple;
                 }
             }
             else if (nodeType == XmlNodeType.EndElement)
@@ -713,13 +716,15 @@ namespace System.Xml
                     Debug.Assert(_originalAtomicValueString != null);
                     originalStringValue = _originalAtomicValueString;
 
-                    return (originalStringValue, _atomicValue);
+                    tuple = new Tuple<string, object>(originalStringValue, _atomicValue);
+                    return tuple;
                 }
                 else
                 {
                     originalStringValue = string.Empty;
 
-                    return (originalStringValue, string.Empty);
+                    tuple = new Tuple<string, object>(originalStringValue, string.Empty);
+                    return tuple;
                 }
             }
             else
@@ -734,7 +739,8 @@ namespace System.Xml
                     Debug.Assert(_originalAtomicValueString != null);
                     originalStringValue = _originalAtomicValueString;
 
-                    return (originalStringValue, value);
+                    tuple = new Tuple<string, object>(originalStringValue, value);
+                    return tuple;
                 }
                 else
                 {
@@ -748,24 +754,25 @@ namespace System.Xml
                         originalStringValue = await InternalReadContentAsStringAsync().ConfigureAwait(false);
                     }
 
-                    return (originalStringValue, originalStringValue);
+                    tuple = new Tuple<string, object>(originalStringValue, originalStringValue);
+                    return tuple;
                 }
             }
         }
 
-        private Task<(XmlSchemaType, object)> InternalReadElementContentAsObjectAsync()
+        private Task<Tuple<XmlSchemaType, object>> InternalReadElementContentAsObjectAsync()
         {
             return InternalReadElementContentAsObjectAsync(false);
         }
 
-        private async Task<(XmlSchemaType, object)> InternalReadElementContentAsObjectAsync(bool unwrapTypedValue)
+        private async Task<Tuple<XmlSchemaType, object>> InternalReadElementContentAsObjectAsync(bool unwrapTypedValue)
         {
             var content = await InternalReadElementContentAsObjectTupleAsync(unwrapTypedValue).ConfigureAwait(false);
 
-            return (content.Item1, content.Item3);
+            return new Tuple<XmlSchemaType, object>(content.Item1, content.Item3);
         }
 
-        private async Task<(XmlSchemaType, string, object)> InternalReadElementContentAsObjectTupleAsync(bool unwrapTypedValue)
+        private async Task<Tuple<XmlSchemaType, string, object>> InternalReadElementContentAsObjectTupleAsync(bool unwrapTypedValue)
         {
             XmlSchemaType? xmlType = null;
             string originalString;
@@ -789,7 +796,7 @@ namespace System.Xml
                 xmlType = ElementXmlType; // Set this for default values
                 await this.ReadAsync().ConfigureAwait(false);
 
-                return (xmlType!, originalString, typedValue);
+                return new Tuple<XmlSchemaType, string, object>(xmlType!, originalString, typedValue);
             }
 
             // move to content and read typed value
@@ -844,7 +851,7 @@ namespace System.Xml
             // move to next node
             await this.ReadAsync().ConfigureAwait(false);
 
-            return (xmlType!, originalString, typedValue);
+            return new Tuple<XmlSchemaType, string, object>(xmlType!, originalString, typedValue);
         }
 
         private async Task<object?> ReadTillEndElementAsync()

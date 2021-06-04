@@ -112,10 +112,7 @@ struct _MonoMethodPInvoke {
 	MonoMethod method;
 	gpointer addr;
 	/* add marshal info */
-	union {
-		guint16 piflags;  /* pinvoke flags */
-		guint16 icflags;  /* icall flags */
-	};
+	guint16 piflags;  /* pinvoke flags */
 	guint32 implmap_idx;  /* index into IMPLMAP */
 };
 

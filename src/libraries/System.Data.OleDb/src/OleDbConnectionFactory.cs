@@ -33,7 +33,8 @@ namespace System.Data.OleDb
 
         protected override DbConnectionInternal CreateConnection(DbConnectionOptions options, DbConnectionPoolKey poolKey, object poolGroupProviderInfo, DbConnectionPool? pool, DbConnection? owningObject)
         {
-            DbConnectionInternal result = new OleDbConnectionInternal((OleDbConnectionString)options, (OleDbConnection?)owningObject);
+            // TODO-NULLABLE: owningObject may actually be null (see DbConnectionPool.CreateObject), in which case this will throw...
+            DbConnectionInternal result = new OleDbConnectionInternal((OleDbConnectionString)options, (OleDbConnection)owningObject!);
             return result;
         }
 

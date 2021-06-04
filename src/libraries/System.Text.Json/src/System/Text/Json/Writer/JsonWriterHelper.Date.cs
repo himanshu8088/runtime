@@ -69,7 +69,7 @@ namespace System.Text.Json
                 // Remove trailing zeros
                 while (true)
                 {
-                    (uint quotient, uint remainder) = DivRem(fraction, 10);
+                    uint quotient = DivMod(fraction, 10, out uint remainder);
                     if (remainder != 0)
                     {
                         break;
@@ -132,13 +132,14 @@ namespace System.Text.Json
             }
         }
 
-        // We don't always have access to System.Math.DivRem,
+        // We don't have access to System.Buffers.Text.FormattingHelpers.DivMod,
         // so this is a copy of the implementation.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static (uint Quotient, uint Remainder) DivRem(uint left, uint right)
+        private static uint DivMod(uint numerator, uint denominator, out uint modulo)
         {
-            uint quotient = left / right;
-            return (quotient, left - (quotient * right));
+            uint div = numerator / denominator;
+            modulo = numerator - (div * denominator);
+            return div;
         }
     }
 }

@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Formats.Asn1;
+using System.Linq;
 using System.Security.Cryptography.Asn1;
 using System.Security.Cryptography.Asn1.Pkcs7;
 using System.Security.Cryptography.Pkcs.Asn1;
@@ -240,21 +241,14 @@ namespace System.Security.Cryptography.Pkcs
             //
             // id-kp-timeStamping. This extension MUST be critical.
 
-            X509ExtensionCollection extensions = tsaCertificate.Extensions;
-            bool anyFound = false;
-            for (int i = 0; i < extensions.Count; i++)
+            using (var ekuExts = tsaCertificate.Extensions.OfType<X509EnhancedKeyUsageExtension>().GetEnumerator())
             {
-                if (extensions[i] is not X509EnhancedKeyUsageExtension ekuExt)
-                {
-                    continue;
-                }
-
-                if (anyFound)
+                if (!ekuExts.MoveNext())
                 {
                     return false;
                 }
 
-                anyFound = true;
+                X509EnhancedKeyUsageExtension ekuExt = ekuExts.Current;
 
                 if (!ekuExt.Critical)
                 {
@@ -276,36 +270,37 @@ namespace System.Security.Cryptography.Pkcs
                 {
                     return false;
                 }
+
+                if (ekuExts.MoveNext())
+                {
+                    return false;
+                }
             }
 
-            if (anyFound)
+            try
             {
-                try
-                {
-                    signer.CheckSignature(new X509Certificate2Collection(tsaCertificate), true);
-                    return true;
-                }
-                catch (CryptographicException)
-                {
-                }
+                signer.CheckSignature(new X509Certificate2Collection(tsaCertificate), true);
+                return true;
             }
-
-            return false;
+            catch (CryptographicException)
+            {
+                return false;
+            }
         }
 
-        public static bool TryDecode(ReadOnlyMemory<byte> encodedBytes, [NotNullWhen(true)] out Rfc3161TimestampToken? token, out int bytesConsumed)
+        public static bool TryDecode(ReadOnlyMemory<byte> source, [NotNullWhen(true)] out Rfc3161TimestampToken? token, out int bytesConsumed)
         {
             bytesConsumed = 0;
             token = null;
 
             try
             {
-                AsnValueReader reader = new AsnValueReader(encodedBytes.Span, AsnEncodingRules.BER);
+                AsnValueReader reader = new AsnValueReader(source.Span, AsnEncodingRules.BER);
                 int bytesActuallyRead = reader.PeekEncodedValue().Length;
 
                 ContentInfoAsn.Decode(
                     ref reader,
-                    encodedBytes,
+                    source,
                     out ContentInfoAsn contentInfo);
 
                 // https://tools.ietf.org/html/rfc3161#section-2.4.2
@@ -322,7 +317,7 @@ namespace System.Security.Cryptography.Pkcs
                 }
 
                 SignedCms cms = new SignedCms();
-                cms.Decode(encodedBytes.Span);
+                cms.Decode(source.Span);
 
                 // The fields of type EncapsulatedContentInfo of the SignedData
                 // construct have the following meanings:

@@ -1835,7 +1835,6 @@ namespace System.Net.Http
 
         public sealed override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, bool async, CancellationToken cancellationToken)
         {
-            Debug.Assert(async);
             if (NetEventSource.Log.IsEnabled()) Trace($"{request}");
 
             try

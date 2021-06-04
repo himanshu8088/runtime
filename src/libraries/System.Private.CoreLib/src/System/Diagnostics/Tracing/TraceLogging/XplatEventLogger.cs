@@ -131,9 +131,9 @@ namespace System.Diagnostics.Tracing
                     }
                     default:
                     {
-                        if (payload[i] is object o)
+                        if (payload[i] != null)
                         {
-                            sb.Append(o.ToString());
+                            sb.Append(payload[i]!.ToString()); // TODO-NULLABLE: Indexer nullability tracked (https://github.com/dotnet/roslyn/issues/34644)
                         }
                         break;
                     }

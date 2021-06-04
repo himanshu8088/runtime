@@ -37,9 +37,6 @@ namespace System.Collections.Concurrent
         internal ConcurrentQueueSegment<T>? _nextSegment; // SOS's ThreadPool command depends on this name
 #pragma warning restore 0649
 
-        /// <summary>Threshold to spin before allowing threads to sleep when there is contention.</summary>
-        private const int Sleep1Threshold = 8;
-
         /// <summary>Creates the segment.</summary>
         /// <param name="boundedLength">
         /// The maximum number of elements the segment can contain.  Must be a power of 2.
@@ -186,7 +183,7 @@ namespace System.Collections.Concurrent
                 }
 
                 // Lost a race. Spin a bit, then try again.
-                spinner.SpinOnce(Sleep1Threshold);
+                spinner.SpinOnce(sleep1Threshold: -1);
             }
         }
 
@@ -247,7 +244,7 @@ namespace System.Collections.Concurrent
                 }
 
                 // Lost a race. Spin a bit, then try again.
-                spinner.SpinOnce(Sleep1Threshold);
+                spinner.SpinOnce(sleep1Threshold: -1);
             }
         }
 
@@ -304,7 +301,7 @@ namespace System.Collections.Concurrent
                 }
 
                 // Lost a race. Spin a bit, then try again.
-                spinner.SpinOnce(Sleep1Threshold);
+                spinner.SpinOnce(sleep1Threshold: -1);
             }
         }
 

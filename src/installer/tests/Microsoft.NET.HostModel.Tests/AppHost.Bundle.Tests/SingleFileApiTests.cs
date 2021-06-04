@@ -8,11 +8,11 @@ using Xunit;
 
 namespace AppHost.Bundle.Tests
 {
-    public class SingleFileApiTests : BundleTestBase, IClassFixture<SingleFileSharedState>
+    public class SingleFileApiTests : BundleTestBase, IClassFixture<SingleFileApiTests.SharedTestState>
     {
-        private SingleFileSharedState sharedTestState;
+        private SharedTestState sharedTestState;
 
-        public SingleFileApiTests(SingleFileSharedState fixture)
+        public SingleFileApiTests(SharedTestState fixture)
         {
             sharedTestState = fixture;
         }
@@ -119,6 +119,24 @@ namespace AppHost.Bundle.Tests
                 .Should().Pass()
                 .And.HaveStdOutContaining(extractionDir)
                 .And.HaveStdOutContaining(bundleDir);
+        }
+
+        public class SharedTestState : SharedTestStateBase, IDisposable
+        {
+            public TestProjectFixture TestFixture { get; set; }
+
+            public SharedTestState()
+            {
+                // We include mockcoreclr in our project to test native binaries extraction.
+                string mockCoreClrPath = Path.Combine(RepoDirectories.Artifacts, "corehost_test",
+                    RuntimeInformationExtensions.GetSharedLibraryFileNameForCurrentPlatform("mockcoreclr"));
+                TestFixture = PreparePublishedSelfContainedTestProject("SingleFileApiTests", $"/p:AddFile={mockCoreClrPath}");
+            }
+
+            public void Dispose()
+            {
+                TestFixture.Dispose();
+            }
         }
     }
 }

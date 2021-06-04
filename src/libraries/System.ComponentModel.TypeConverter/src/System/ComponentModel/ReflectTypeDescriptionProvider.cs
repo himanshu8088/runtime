@@ -247,7 +247,7 @@ namespace System.ComponentModel
                 }
                 else
                 {
-                    argTypes = Type.EmptyTypes;
+                    argTypes = Array.Empty<Type>();
                 }
 
                 obj = objectType.GetConstructor(argTypes)?.Invoke(args);

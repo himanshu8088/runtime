@@ -18,7 +18,7 @@ namespace System.Xml
         Task ParsePIAsync(StringBuilder? sb);
         Task ParseCommentAsync(StringBuilder? sb);
 
-        Task<(int, bool)> PushEntityAsync(IDtdEntityInfo entity);
+        Task<Tuple<int, bool>> PushEntityAsync(IDtdEntityInfo entity);
 
         Task<bool> PushExternalSubsetAsync(string? systemId, string? publicId);
     }

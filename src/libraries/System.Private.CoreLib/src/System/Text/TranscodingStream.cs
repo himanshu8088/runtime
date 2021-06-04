@@ -459,11 +459,6 @@ namespace System.Text
         {
             EnsurePreWriteConditions();
 
-            if (buffer.IsEmpty)
-            {
-                return;
-            }
-
             int rentalLength = Math.Clamp(buffer.Length, MinWriteRentedArraySize, MaxWriteRentedArraySize);
 
             char[] scratchChars = ArrayPool<char>.Shared.Rent(rentalLength);
@@ -530,11 +525,6 @@ namespace System.Text
             if (cancellationToken.IsCancellationRequested)
             {
                 return ValueTask.FromCanceled(cancellationToken);
-            }
-
-            if (buffer.IsEmpty)
-            {
-                return ValueTask.CompletedTask;
             }
 
             return WriteAsyncCore(buffer, cancellationToken);

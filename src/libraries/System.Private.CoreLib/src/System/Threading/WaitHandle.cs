@@ -303,9 +303,9 @@ namespace System.Threading
             {
                 for (int i = 0; i < waitHandles.Length; ++i)
                 {
-                    if (safeWaitHandles[i] is SafeWaitHandle swh)
+                    if (safeWaitHandles[i] != null)
                     {
-                        swh.DangerousRelease();
+                        safeWaitHandles[i]!.DangerousRelease(); // TODO-NULLABLE: Indexer nullability tracked (https://github.com/dotnet/roslyn/issues/34644)
                         safeWaitHandles[i] = null;
                     }
                 }

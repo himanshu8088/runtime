@@ -412,7 +412,7 @@ namespace System.Net
                             }
                         }
 
-                        if (cancelResult != 0 && cancelResult != Interop.Winsock.WSA_INVALID_HANDLE && NetEventSource.Log.IsEnabled())
+                        if (cancelResult != 0 && cancelResult != Interop.Winsock.WSA_INVALID_HANDLE && NetEventSource.IsEnabled)
                         {
                             NetEventSource.Info(@this, $"GetAddrInfoExCancel returned error {cancelResult}");
                         }

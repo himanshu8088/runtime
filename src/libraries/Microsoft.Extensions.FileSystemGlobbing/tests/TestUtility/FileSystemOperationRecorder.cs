@@ -8,8 +8,6 @@ namespace Microsoft.Extensions.FileSystemGlobbing.Tests.TestUtility
 {
     internal class FileSystemOperationRecorder
     {
-        private const BindingFlags DeclaredOnlyLookup = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
-
         public IList<IDictionary<string, object>> Records = new List<IDictionary<string, object>>();
 
         public void Add(string action, object values)
@@ -19,7 +17,7 @@ namespace Microsoft.Extensions.FileSystemGlobbing.Tests.TestUtility
                 {"action", action }
             };
 
-            foreach (var p in values.GetType().GetProperties(DeclaredOnlyLookup))
+            foreach (var p in values.GetType().GetTypeInfo().DeclaredProperties)
             {
                 record[p.Name] = p.GetValue(values);
             }

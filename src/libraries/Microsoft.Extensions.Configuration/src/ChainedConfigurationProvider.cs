@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Extensions.Primitives;
 
 namespace Microsoft.Extensions.Configuration
@@ -77,14 +78,11 @@ namespace Microsoft.Extensions.Configuration
             string parentPath)
         {
             IConfiguration section = parentPath == null ? _config : _config.GetSection(parentPath);
+            IEnumerable<IConfigurationSection> children = section.GetChildren();
             var keys = new List<string>();
-            foreach (IConfigurationSection child in section.GetChildren())
-            {
-                keys.Add(child.Key);
-            }
-            keys.AddRange(earlierKeys);
-            keys.Sort(ConfigurationKeyComparer.Comparison);
-            return keys;
+            keys.AddRange(children.Select(c => c.Key));
+            return keys.Concat(earlierKeys)
+                .OrderBy(k => k, ConfigurationKeyComparer.Instance);
         }
 
         /// <inheritdoc />

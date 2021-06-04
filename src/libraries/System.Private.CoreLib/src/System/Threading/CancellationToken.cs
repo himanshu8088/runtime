@@ -35,6 +35,12 @@ namespace System.Threading
         private readonly CancellationTokenSource? _source;
         // !! warning. If more fields are added, the assumptions in CreateLinkedToken may no longer be valid
 
+        private static readonly Action<object?> s_actionToActionObjShunt = obj =>
+        {
+            Debug.Assert(obj is Action, $"Expected {typeof(Action)}, got {obj}");
+            ((Action)obj)();
+        };
+
         /// <summary>
         /// Returns an empty CancellationToken value.
         /// </summary>
@@ -130,7 +136,12 @@ namespace System.Threading
         /// <returns>The <see cref="System.Threading.CancellationTokenRegistration"/> instance that can
         /// be used to unregister the callback.</returns>
         /// <exception cref="System.ArgumentNullException"><paramref name="callback"/> is null.</exception>
-        public CancellationTokenRegistration Register(Action callback) => Register(callback, useSynchronizationContext: false);
+        public CancellationTokenRegistration Register(Action callback) =>
+            Register(
+                s_actionToActionObjShunt,
+                callback ?? throw new ArgumentNullException(nameof(callback)),
+                useSynchronizationContext: false,
+                useExecutionContext: true);
 
         /// <summary>
         /// Registers a delegate that will be called when this
@@ -156,7 +167,7 @@ namespace System.Threading
         /// <exception cref="System.ArgumentNullException"><paramref name="callback"/> is null.</exception>
         public CancellationTokenRegistration Register(Action callback, bool useSynchronizationContext) =>
             Register(
-                (Action<object?>)(static obj => ((Action)obj!)()),
+                s_actionToActionObjShunt,
                 callback ?? throw new ArgumentNullException(nameof(callback)),
                 useSynchronizationContext,
                 useExecutionContext: true);

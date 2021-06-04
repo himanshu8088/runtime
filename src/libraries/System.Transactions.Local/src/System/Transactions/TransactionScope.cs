@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Runtime.Versioning;
 using System.Threading;
 
 namespace System.Transactions
@@ -33,7 +32,6 @@ namespace System.Transactions
         Full = 2
     }
 
-    [UnsupportedOSPlatform("browser")]
     public sealed class TransactionScope : IDisposable
     {
         public TransactionScope() : this(TransactionScopeOption.Required)

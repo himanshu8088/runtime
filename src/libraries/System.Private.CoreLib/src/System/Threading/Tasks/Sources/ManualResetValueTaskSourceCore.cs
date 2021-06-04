@@ -175,9 +175,9 @@ namespace System.Threading.Tasks.Sources
                     case SynchronizationContext sc:
                         sc.Post(static s =>
                         {
-                            var tuple = (TupleSlim<Action<object?>, object?>)s!;
+                            var tuple = (Tuple<Action<object?>, object?>)s!;
                             tuple.Item1(tuple.Item2);
-                        }, new TupleSlim<Action<object?>, object?>(continuation, state));
+                        }, Tuple.Create(continuation, state));
                         break;
 
                     case TaskScheduler ts:
@@ -320,9 +320,9 @@ namespace System.Threading.Tasks.Sources
                 case SynchronizationContext sc:
                     sc.Post(static s =>
                     {
-                        var state = (TupleSlim<Action<object?>, object?>)s!;
+                        var state = (Tuple<Action<object?>, object?>)s!;
                         state.Item1(state.Item2);
-                    }, new TupleSlim<Action<object?>, object?>(_continuation, _continuationState));
+                    }, Tuple.Create(_continuation, _continuationState));
                     break;
 
                 case TaskScheduler ts:

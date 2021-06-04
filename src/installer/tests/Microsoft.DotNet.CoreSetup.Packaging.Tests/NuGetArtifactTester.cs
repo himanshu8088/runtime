@@ -34,12 +34,26 @@ namespace Microsoft.DotNet.CoreSetup.Packaging.Tests
         {
             id = id ?? project;
 
+            string nuspecPath = Path.Combine(
+                dirs.BaseArtifactsFolder,
+                "packages",
+                dirs.Configuration,
+                "specs",
+                $"{id}.nuspec");
+
+            if (!File.Exists(nuspecPath))
+            {
+                return null;
+            }
+
+            PackageIdentity builtIdentity = new NuspecReader(nuspecPath).GetIdentity();
+
             string nupkgPath = Path.Combine(
                 dirs.BaseArtifactsFolder,
                 "packages",
                 dirs.Configuration,
                 "Shipping",
-                $"{id}.{dirs.MicrosoftNETCoreAppVersion}.nupkg");
+                $"{builtIdentity}.nupkg");
 
             // If the nuspec exists, the nupkg should exist.
             Assert.True(File.Exists(nupkgPath));
@@ -92,7 +106,10 @@ namespace Microsoft.DotNet.CoreSetup.Packaging.Tests
             IsRuntimeSpecificPack();
 
             HasOnlyTheseDataFiles(
-                "data/RuntimeList.xml");
+                "data/RuntimeList.xml",
+                "data/PlatformManifest.txt");
+
+            HasGoodPlatformManifest();
 
             ContainsFrameworkList("RuntimeList.xml");
         }

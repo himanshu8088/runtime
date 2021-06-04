@@ -12,10 +12,10 @@ namespace System.IO.MemoryMappedFiles.Tests
     public abstract partial class MemoryMappedFilesTestBase : FileCleanupTestBase
     {
         /// <summary>Gets whether named maps are supported by the current platform.</summary>
-        internal static bool MapNamesSupported => OperatingSystem.IsWindows();
+        protected static bool MapNamesSupported => OperatingSystem.IsWindows();
 
         /// <summary>Creates a map name guaranteed to be unique.</summary>
-        internal static string CreateUniqueMapName() { return Guid.NewGuid().ToString("N"); }
+        protected static string CreateUniqueMapName() { return Guid.NewGuid().ToString("N"); }
 
         /// <summary>Creates a map name guaranteed to be unique and contain only whitespace characters.</summary>
         protected static string CreateUniqueWhitespaceMapName()

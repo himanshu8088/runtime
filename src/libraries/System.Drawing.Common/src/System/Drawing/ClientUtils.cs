@@ -109,11 +109,9 @@ namespace System.Drawing
 
                 for (int i = 0; i < Count; i++)
                 {
-                    object? thisObj = InnerList[i];
-                    object? otherObj = other.InnerList[i];
-                    if (thisObj != otherObj)
+                    if (InnerList[i] != other.InnerList[i])
                     {
-                        if (thisObj is null || !thisObj.Equals(otherObj))
+                        if (InnerList[i] == null || !InnerList[i]!.Equals(other.InnerList[i])) // TODO-NULLABLE: https://github.com/dotnet/roslyn/issues/34644
                         {
                             return false;
                         }

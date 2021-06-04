@@ -615,7 +615,7 @@ namespace System.Runtime.InteropServices
         {
             if (s is null)
             {
-                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.s);
+                throw new ArgumentNullException(nameof(s));
             }
 
             return s.MarshalToBSTR();
@@ -625,7 +625,7 @@ namespace System.Runtime.InteropServices
         {
             if (s is null)
             {
-                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.s);
+                throw new ArgumentNullException(nameof(s));
             }
 
             return s.MarshalToString(globalAlloc: false, unicode: false);
@@ -635,7 +635,7 @@ namespace System.Runtime.InteropServices
         {
             if (s is null)
             {
-                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.s);
+                throw new ArgumentNullException(nameof(s));
             }
 
             return s.MarshalToString(globalAlloc: false, unicode: true);
@@ -645,7 +645,7 @@ namespace System.Runtime.InteropServices
         {
             if (s is null)
             {
-                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.s);
+                throw new ArgumentNullException(nameof(s));
             }
 
             return s.MarshalToString(globalAlloc: true, unicode: false);
@@ -655,7 +655,7 @@ namespace System.Runtime.InteropServices
         {
             if (s is null)
             {
-                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.s);
+                throw new ArgumentNullException(nameof(s));
             }
 
             return s.MarshalToString(globalAlloc: true, unicode: true);
@@ -674,13 +674,13 @@ namespace System.Runtime.InteropServices
             // Overflow checking
             if (nb != lnb)
             {
-                ThrowHelper.ThrowArgumentOutOfRangeException(ExceptionArgument.s);
+                throw new ArgumentOutOfRangeException(nameof(s));
             }
 
-            IntPtr ptr = AllocHGlobal((IntPtr)nb);
+            IntPtr hglobal = AllocHGlobal((IntPtr)nb);
 
-            StringToAnsiString(s, (byte*)ptr, nb);
-            return ptr;
+            StringToAnsiString(s, (byte*)hglobal, nb);
+            return hglobal;
         }
 
         public static unsafe IntPtr StringToHGlobalUni(string? s)
@@ -695,15 +695,16 @@ namespace System.Runtime.InteropServices
             // Overflow checking
             if (nb < s.Length)
             {
-                ThrowHelper.ThrowArgumentOutOfRangeException(ExceptionArgument.s);
+                throw new ArgumentOutOfRangeException(nameof(s));
             }
 
-            IntPtr ptr = AllocHGlobal((IntPtr)nb);
+            IntPtr hglobal = AllocHGlobal((IntPtr)nb);
 
-            s.AsSpan().CopyTo(new Span<char>((char*)ptr, s.Length));
-            ((char*)ptr)[s.Length] = '\0';
-
-            return ptr;
+            fixed (char* firstChar = s)
+            {
+                string.wstrcpy((char*)hglobal, firstChar, s.Length + 1);
+            }
+            return hglobal;
         }
 
         private static unsafe IntPtr StringToHGlobalUTF8(string? s)
@@ -715,10 +716,10 @@ namespace System.Runtime.InteropServices
 
             int nb = Encoding.UTF8.GetMaxByteCount(s.Length);
 
-            IntPtr ptr = AllocHGlobal(nb + 1);
+            IntPtr pMem = AllocHGlobal(nb + 1);
 
             int nbWritten;
-            byte* pbMem = (byte*)ptr;
+            byte* pbMem = (byte*)pMem;
 
             fixed (char* firstChar = s)
             {
@@ -727,7 +728,7 @@ namespace System.Runtime.InteropServices
 
             pbMem[nbWritten] = 0;
 
-            return ptr;
+            return pMem;
         }
 
         public static unsafe IntPtr StringToCoTaskMemUni(string? s)
@@ -742,15 +743,16 @@ namespace System.Runtime.InteropServices
             // Overflow checking
             if (nb < s.Length)
             {
-                ThrowHelper.ThrowArgumentOutOfRangeException(ExceptionArgument.s);
+                throw new ArgumentOutOfRangeException(nameof(s));
             }
 
-            IntPtr ptr = AllocCoTaskMem(nb);
+            IntPtr hglobal = AllocCoTaskMem(nb);
 
-            s.AsSpan().CopyTo(new Span<char>((char*)ptr, s.Length));
-            ((char*)ptr)[s.Length] = '\0';
-
-            return ptr;
+            fixed (char* firstChar = s)
+            {
+                string.wstrcpy((char*)hglobal, firstChar, s.Length + 1);
+            }
+            return hglobal;
         }
 
         public static unsafe IntPtr StringToCoTaskMemUTF8(string? s)
@@ -762,10 +764,10 @@ namespace System.Runtime.InteropServices
 
             int nb = Encoding.UTF8.GetMaxByteCount(s.Length);
 
-            IntPtr ptr = AllocCoTaskMem(nb + 1);
+            IntPtr pMem = AllocCoTaskMem(nb + 1);
 
             int nbWritten;
-            byte* pbMem = (byte*)ptr;
+            byte* pbMem = (byte*)pMem;
 
             fixed (char* firstChar = s)
             {
@@ -774,7 +776,7 @@ namespace System.Runtime.InteropServices
 
             pbMem[nbWritten] = 0;
 
-            return ptr;
+            return pMem;
         }
 
         public static unsafe IntPtr StringToCoTaskMemAnsi(string? s)
@@ -790,13 +792,13 @@ namespace System.Runtime.InteropServices
             // Overflow checking
             if (nb != lnb)
             {
-                ThrowHelper.ThrowArgumentOutOfRangeException(ExceptionArgument.s);
+                throw new ArgumentOutOfRangeException(nameof(s));
             }
 
-            IntPtr ptr = AllocCoTaskMem(nb);
+            IntPtr hglobal = AllocCoTaskMem(nb);
 
-            StringToAnsiString(s, (byte*)ptr, nb);
-            return ptr;
+            StringToAnsiString(s, (byte*)hglobal, nb);
+            return hglobal;
         }
 
         /// <summary>
@@ -974,8 +976,10 @@ namespace System.Runtime.InteropServices
 
             IntPtr bstr = AllocBSTR(s.Length);
 
-            s.AsSpan().CopyTo(new Span<char>((char*)bstr, s.Length)); // AllocBSTR already included the null terminator
-
+            fixed (char* firstChar = s)
+            {
+                string.wstrcpy((char*)bstr, firstChar, s.Length + 1);
+            }
             return bstr;
         }
 

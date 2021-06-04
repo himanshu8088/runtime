@@ -18,34 +18,31 @@ namespace ComWrappersTests
         {
             protected unsafe override ComInterfaceEntry* ComputeVtables(object obj, CreateComInterfaceFlags flags, out int count)
             {
+                Assert.IsTrue(obj is Test);
+
                 IntPtr fpQueryInteface = default;
                 IntPtr fpAddRef = default;
                 IntPtr fpRelease = default;
                 ComWrappers.GetIUnknownImpl(out fpQueryInteface, out fpAddRef, out fpRelease);
 
-                ComInterfaceEntry* entryRaw = null;
-                count = 0;
-                if (obj is Test)
+                var vtbl = new ITestVtbl()
                 {
-                    var vtbl = new ITestVtbl()
+                    IUnknownImpl = new IUnknownVtbl()
                     {
-                        IUnknownImpl = new IUnknownVtbl()
-                        {
-                            QueryInterface = fpQueryInteface,
-                            AddRef = fpAddRef,
-                            Release = fpRelease
-                        },
-                        SetValue = Marshal.GetFunctionPointerForDelegate(ITestVtbl.pSetValue)
-                    };
-                    var vtblRaw = RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(ITestVtbl), sizeof(ITestVtbl));
-                    Marshal.StructureToPtr(vtbl, vtblRaw, false);
+                        QueryInterface = fpQueryInteface,
+                        AddRef = fpAddRef,
+                        Release = fpRelease
+                    },
+                    SetValue = Marshal.GetFunctionPointerForDelegate(ITestVtbl.pSetValue)
+                };
+                var vtblRaw = RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(ITestVtbl), sizeof(ITestVtbl));
+                Marshal.StructureToPtr(vtbl, vtblRaw, false);
 
-                    entryRaw = (ComInterfaceEntry*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(ITestVtbl), sizeof(ComInterfaceEntry));
-                    entryRaw->IID = typeof(ITest).GUID;
-                    entryRaw->Vtable = vtblRaw;
-                    count = 1;
-                }
+                var entryRaw = (ComInterfaceEntry*)RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(ITestVtbl), sizeof(ComInterfaceEntry));
+                entryRaw->IID = typeof(ITest).GUID;
+                entryRaw->Vtable = vtblRaw;
 
+                count = 1;
                 return entryRaw;
             }
 
@@ -76,19 +73,6 @@ namespace ComWrappersTests
                 Assert.AreNotEqual(fpAddRef, IntPtr.Zero);
                 Assert.AreNotEqual(fpRelease, IntPtr.Zero);
             }
-        }
-
-        static void ForceGC()
-        {
-            // Trigger the GC multiple times and then
-            // wait for all finalizers since that is where
-            // most of the cleanup occurs.
-            GC.Collect();
-            GC.Collect();
-            GC.Collect();
-            GC.Collect();
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
         }
 
         static void ValidateComInterfaceCreation()
@@ -391,7 +375,11 @@ namespace ComWrappersTests
 
             Assert.IsTrue(testWrapperIds.Count <= Test.InstanceCount);
 
-            ForceGC();
+            GC.Collect();
+            GC.Collect();
+            GC.Collect();
+            GC.Collect();
+            GC.Collect();
 
             Assert.IsTrue(testWrapperIds.Count <= Test.InstanceCount);
 
@@ -403,69 +391,11 @@ namespace ComWrappersTests
 
             testWrapperIds.Clear();
 
-            ForceGC();
-        }
-
-        unsafe class Derived : ITrackerObjectWrapper
-        {
-            public Derived(ComWrappers cw, bool aggregateRefTracker)
-                : base(cw, aggregateRefTracker)
-            { }
-
-            [MethodImpl(MethodImplOptions.NoInlining)]
-            public static WeakReference<Derived> AllocateAndUseBaseType(ComWrappers cw, bool aggregateRefTracker)
-            {
-                var derived = new Derived(cw, aggregateRefTracker);
-
-                // Use the base type
-                IntPtr testWrapper = cw.GetOrCreateComInterfaceForObject(new Test(), CreateComInterfaceFlags.TrackerSupport);
-                int id = derived.AddObjectRef(testWrapper);
-
-                // Tell the tracker runtime to release its hold on the base instance.
-                MockReferenceTrackerRuntime.ReleaseAllTrackerObjects();
-
-                // Validate the GC is tracking the entire Derived type.
-                ForceGC();
-
-                derived.DropObjectRef(id);
-
-                return new WeakReference<Derived>(derived);
-            }
-        }
-
-        static void ValidateAggregationWithComObject()
-        {
-            Console.WriteLine($"Running {nameof(ValidateAggregationWithComObject)}...");
-
-            using var allocTracker = MockReferenceTrackerRuntime.CountTrackerObjectAllocations();
-            var cw = new TestComWrappers();
-            WeakReference<Derived> weakRef = Derived.AllocateAndUseBaseType(cw, aggregateRefTracker: false);
-
-            ForceGC();
-
-            // Validate all instances were cleaned up
-            Assert.IsFalse(weakRef.TryGetTarget(out _));
-            Assert.AreEqual(0, allocTracker.GetCount());
-        }
-
-        static void ValidateAggregationWithReferenceTrackerObject()
-        {
-            Console.WriteLine($"Running {nameof(ValidateAggregationWithReferenceTrackerObject)}...");
-
-            using var allocTracker = MockReferenceTrackerRuntime.CountTrackerObjectAllocations();
-            var cw = new TestComWrappers();
-            WeakReference<Derived> weakRef = Derived.AllocateAndUseBaseType(cw, aggregateRefTracker: true);
-
-            ForceGC();
-
-            // Validate all instances were cleaned up.
-            Assert.IsFalse(weakRef.TryGetTarget(out _));
-
-            // Reference counter cleanup requires additional GCs since the Finalizer is used
-            // to clean up the Reference Tracker runtime references.
-            ForceGC();
-
-            Assert.AreEqual(0, allocTracker.GetCount());
+            GC.Collect();
+            GC.Collect();
+            GC.Collect();
+            GC.Collect();
+            GC.Collect();
         }
 
         static int Main(string[] doNotUse)
@@ -480,8 +410,6 @@ namespace ComWrappersTests
                 ValidateIUnknownImpls();
                 ValidateBadComWrapperImpl();
                 ValidateRuntimeTrackerScenario();
-                ValidateAggregationWithComObject();
-                ValidateAggregationWithReferenceTrackerObject();
             }
             catch (Exception e)
             {

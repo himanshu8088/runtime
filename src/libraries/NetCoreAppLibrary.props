@@ -158,6 +158,5 @@
   <!-- Make NetCoreAppLibrary available as an item. -->
   <ItemGroup>
     <NetCoreAppLibrary Include="$(NetCoreAppLibrary)" />
-    <NetCoreAppLibraryNoReference Include="$(NetCoreAppLibraryNoReference)" />
   </ItemGroup>
 </Project>

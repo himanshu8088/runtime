@@ -276,7 +276,7 @@ namespace Microsoft.CSharp.RuntimeBinder
                     }
 
                     // See if MetadataToken property is available.
-                    PropertyInfo property = memberInfo.GetProperty("MetadataToken", typeof(int), Type.EmptyTypes);
+                    PropertyInfo property = memberInfo.GetProperty("MetadataToken", typeof(int), Array.Empty<Type>());
 
                     if (property is not null && property.CanRead)
                     {

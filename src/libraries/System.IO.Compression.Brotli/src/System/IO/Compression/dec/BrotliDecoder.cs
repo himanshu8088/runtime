@@ -5,6 +5,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
+using size_t = System.IntPtr;
 
 namespace System.IO.Compression
 {
@@ -48,11 +49,11 @@ namespace System.IO.Compression
             bytesWritten = 0;
             if (Interop.Brotli.BrotliDecoderIsFinished(_state))
                 return OperationStatus.Done;
-            nuint availableOutput = (nuint)destination.Length;
-            nuint availableInput = (nuint)source.Length;
+            size_t availableOutput = (size_t)destination.Length;
+            size_t availableInput = (size_t)source.Length;
             unsafe
             {
-                // We can freely cast between int and nuint (.NET size_t equivalent) for two reasons:
+                // We can freely cast between int and size_t for two reasons:
                 // 1. Interop Brotli functions will always return an availableInput/Output value lower or equal to the one passed to the function
                 // 2. Span's have a maximum length of the int boundary.
                 while ((int)availableOutput > 0)
@@ -60,15 +61,11 @@ namespace System.IO.Compression
                     fixed (byte* inBytes = &MemoryMarshal.GetReference(source))
                     fixed (byte* outBytes = &MemoryMarshal.GetReference(destination))
                     {
-                        int brotliResult = Interop.Brotli.BrotliDecoderDecompressStream(_state, ref availableInput, &inBytes, ref availableOutput, &outBytes, out _);
+                        int brotliResult = Interop.Brotli.BrotliDecoderDecompressStream(_state, ref availableInput, &inBytes, ref availableOutput, &outBytes, out size_t totalOut);
                         if (brotliResult == 0) // Error
                         {
                             return OperationStatus.InvalidData;
                         }
-
-                        Debug.Assert(availableInput <= (nuint)source.Length);
-                        Debug.Assert(availableOutput <= (nuint)destination.Length);
-
                         bytesConsumed += source.Length - (int)availableInput;
                         bytesWritten += destination.Length - (int)availableOutput;
 
@@ -97,11 +94,8 @@ namespace System.IO.Compression
             fixed (byte* inBytes = &MemoryMarshal.GetReference(source))
             fixed (byte* outBytes = &MemoryMarshal.GetReference(destination))
             {
-                nuint availableOutput = (nuint)destination.Length;
-                bool success = Interop.Brotli.BrotliDecoderDecompress((nuint)source.Length, inBytes, ref availableOutput, outBytes);
-
-                Debug.Assert(success ? availableOutput <= (nuint)destination.Length : availableOutput == 0);
-
+                size_t availableOutput = (size_t)destination.Length;
+                bool success = Interop.Brotli.BrotliDecoderDecompress((size_t)source.Length, inBytes, ref availableOutput, outBytes);
                 bytesWritten = (int)availableOutput;
                 return success;
             }

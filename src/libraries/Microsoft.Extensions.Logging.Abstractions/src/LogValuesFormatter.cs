@@ -20,10 +20,6 @@ namespace Microsoft.Extensions.Logging
         private readonly string _format;
         private readonly List<string> _valueNames = new List<string>();
 
-        // NOTE: If this assembly ever builds for netcoreapp, the below code should change to:
-        // - Be annotated as [SkipLocalsInit] to avoid zero'ing the stackalloc'd char span
-        // - Format _valueNames.Count directly into a span
-
         public LogValuesFormatter(string format)
         {
             if (format == null)
@@ -33,25 +29,18 @@ namespace Microsoft.Extensions.Logging
 
             OriginalFormat = format;
 
-            var vsb = new ValueStringBuilder(stackalloc char[256]);
+            var sb = new StringBuilder();
             int scanIndex = 0;
             int endIndex = format.Length;
 
             while (scanIndex < endIndex)
             {
                 int openBraceIndex = FindBraceIndex(format, '{', scanIndex, endIndex);
-                if (scanIndex == 0 && openBraceIndex == endIndex)
-                {
-                    // No holes found.
-                    _format = format;
-                    return;
-                }
-
                 int closeBraceIndex = FindBraceIndex(format, '}', openBraceIndex, endIndex);
 
                 if (closeBraceIndex == endIndex)
                 {
-                    vsb.Append(format.AsSpan(scanIndex, endIndex - scanIndex));
+                    sb.Append(format, scanIndex, endIndex - scanIndex);
                     scanIndex = endIndex;
                 }
                 else
@@ -59,16 +48,16 @@ namespace Microsoft.Extensions.Logging
                     // Format item syntax : { index[,alignment][ :formatString] }.
                     int formatDelimiterIndex = FindIndexOfAny(format, FormatDelimiters, openBraceIndex, closeBraceIndex);
 
-                    vsb.Append(format.AsSpan(scanIndex, openBraceIndex - scanIndex + 1));
-                    vsb.Append(_valueNames.Count.ToString());
+                    sb.Append(format, scanIndex, openBraceIndex - scanIndex + 1);
+                    sb.Append(_valueNames.Count.ToString(CultureInfo.InvariantCulture));
                     _valueNames.Add(format.Substring(openBraceIndex + 1, formatDelimiterIndex - openBraceIndex - 1));
-                    vsb.Append(format.AsSpan(formatDelimiterIndex, closeBraceIndex - formatDelimiterIndex + 1));
+                    sb.Append(format, formatDelimiterIndex, closeBraceIndex - formatDelimiterIndex + 1);
 
                     scanIndex = closeBraceIndex + 1;
                 }
             }
 
-            _format = vsb.ToString();
+            _format = sb.ToString();
         }
 
         public string OriginalFormat { get; private set; }
@@ -128,7 +117,7 @@ namespace Microsoft.Extensions.Logging
             return findIndex == -1 ? endIndex : findIndex;
         }
 
-        public string Format(object?[]? values)
+        public string Format(object[] values)
         {
             if (values != null)
             {
@@ -146,22 +135,22 @@ namespace Microsoft.Extensions.Logging
             return _format;
         }
 
-        internal string Format(object? arg0)
+        internal string Format(object arg0)
         {
             return string.Format(CultureInfo.InvariantCulture, _format, FormatArgument(arg0));
         }
 
-        internal string Format(object? arg0, object? arg1)
+        internal string Format(object arg0, object arg1)
         {
             return string.Format(CultureInfo.InvariantCulture, _format, FormatArgument(arg0), FormatArgument(arg1));
         }
 
-        internal string Format(object? arg0, object? arg1, object? arg2)
+        internal string Format(object arg0, object arg1, object arg2)
         {
             return string.Format(CultureInfo.InvariantCulture, _format, FormatArgument(arg0), FormatArgument(arg1), FormatArgument(arg2));
         }
 
-        public KeyValuePair<string, object?> GetValue(object?[] values, int index)
+        public KeyValuePair<string, object> GetValue(object[] values, int index)
         {
             if (index < 0 || index > _valueNames.Count)
             {
@@ -170,25 +159,25 @@ namespace Microsoft.Extensions.Logging
 
             if (_valueNames.Count > index)
             {
-                return new KeyValuePair<string, object?>(_valueNames[index], values[index]);
+                return new KeyValuePair<string, object>(_valueNames[index], values[index]);
             }
 
-            return new KeyValuePair<string, object?>("{OriginalFormat}", OriginalFormat);
+            return new KeyValuePair<string, object>("{OriginalFormat}", OriginalFormat);
         }
 
-        public IEnumerable<KeyValuePair<string, object?>> GetValues(object[] values)
+        public IEnumerable<KeyValuePair<string, object>> GetValues(object[] values)
         {
-            var valueArray = new KeyValuePair<string, object?>[values.Length + 1];
+            var valueArray = new KeyValuePair<string, object>[values.Length + 1];
             for (int index = 0; index != _valueNames.Count; ++index)
             {
-                valueArray[index] = new KeyValuePair<string, object?>(_valueNames[index], values[index]);
+                valueArray[index] = new KeyValuePair<string, object>(_valueNames[index], values[index]);
             }
 
-            valueArray[valueArray.Length - 1] = new KeyValuePair<string, object?>("{OriginalFormat}", OriginalFormat);
+            valueArray[valueArray.Length - 1] = new KeyValuePair<string, object>("{OriginalFormat}", OriginalFormat);
             return valueArray;
         }
 
-        private object FormatArgument(object? value)
+        private object FormatArgument(object value)
         {
             if (value == null)
             {

@@ -47,7 +47,7 @@ namespace System.Reflection.Emit
 
             // Define property as:
             // public string AssemblyName {get { return this.assemblyName; } }
-            PropertyBuilder propertyBuilder = attributeTypeBuilder.DefineProperty(
+            _ = attributeTypeBuilder.DefineProperty(
                     "AssemblyName",
                     PropertyAttributes.None,
                     CallingConventions.HasThis,
@@ -60,7 +60,6 @@ namespace System.Reflection.Emit
                                                    CallingConventions.HasThis,
                                                    returnType: typeof(string),
                                                    parameterTypes: null);
-            propertyBuilder.SetGetMethod(getterMethodBuilder);
 
             // Generate body:
             // return this.assemblyName;

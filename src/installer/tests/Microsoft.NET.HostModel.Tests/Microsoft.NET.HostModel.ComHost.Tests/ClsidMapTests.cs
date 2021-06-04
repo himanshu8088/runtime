@@ -154,15 +154,15 @@ namespace Microsoft.NET.HostModel.ComHost.Tests
                 RepoDirectories = new RepoDirectoriesProvider();
 
                 ComLibraryFixture = new TestProjectFixture("ComLibrary", RepoDirectories)
-                    .EnsureRestored()
+                    .EnsureRestored(RepoDirectories.CorehostPackages)
                     .BuildProject();
 
                 ComLibraryMissingGuidFixture = new TestProjectFixture("ComLibraryMissingGuid", RepoDirectories)
-                    .EnsureRestored()
+                    .EnsureRestored(RepoDirectories.CorehostPackages)
                     .BuildProject();
 
                 ComLibraryConflictingGuidFixture = new TestProjectFixture("ComLibraryConflictingGuid", RepoDirectories)
-                    .EnsureRestored()
+                    .EnsureRestored(RepoDirectories.CorehostPackages)
                     .BuildProject();
             }
 

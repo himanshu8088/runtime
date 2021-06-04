@@ -97,13 +97,14 @@ namespace System.ComponentModel.Composition.ReflectionModel
             {
                 return MemberType.GetHashCode() ^ _accessorsCreator.GetHashCode();
             }
-
-            if (_accessors != null && _accessors[0] is MemberInfo accessor)
+            else
             {
-                return MemberType.GetHashCode() ^ accessor.GetHashCode();
+                if (_accessors == null || _accessors[0] == null)
+                {
+                    throw new Exception(SR.Diagnostic_InternalExceptionMessage);
+                }
+                return MemberType.GetHashCode() ^ _accessors[0]!.GetHashCode(); // TODO-NULLABLE: Indexer nullability tracked (https://github.com/dotnet/roslyn/issues/34644)
             }
-
-            throw new Exception(SR.Diagnostic_InternalExceptionMessage);
         }
 
         public override bool Equals(object? obj)

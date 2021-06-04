@@ -1206,7 +1206,7 @@ namespace System
             Type[] types = GetGenericArgumentsInternal(false);
 
             if (types == null)
-                types = Type.EmptyTypes;
+                types = Array.Empty<Type>();
 
             return types;
         }
@@ -1726,7 +1726,7 @@ namespace System
                     if (argCnt == 0 && (bindingAttr & BindingFlags.Public) != 0 && (bindingAttr & BindingFlags.Instance) != 0
                         && (IsValueType))
                     {
-                        server = CreateInstanceDefaultCtor(publicOnly, wrapExceptions);
+                        server = CreateInstanceDefaultCtor(publicOnly, false, true, wrapExceptions);
                     }
                     else
                     {
@@ -1809,26 +1809,31 @@ namespace System
         }
 
         // Helper to invoke the default (parameterless) ctor.
+        // fillCache is set in the SL2/3 compat mode or when called from Marshal.PtrToStructure.
         [DebuggerStepThroughAttribute]
         [Diagnostics.DebuggerHidden]
-        internal object? CreateInstanceDefaultCtor(bool publicOnly, bool wrapExceptions)
+        internal object? CreateInstanceDefaultCtor(bool publicOnly, bool skipCheckThis, bool fillCache, bool wrapExceptions)
         {
             if (IsByRefLike)
                 throw new NotSupportedException(SR.NotSupported_ByRefLike);
 
-            CreateInstanceCheckThis();
-
-            return CreateInstanceMono(!publicOnly, wrapExceptions);
+            return CreateInstanceSlow(publicOnly, wrapExceptions, skipCheckThis, fillCache);
         }
 
         #endregion
 
-        private TypeCache? cache;
+        private TypeCache cache;
 
-        internal TypeCache Cache =>
-            Volatile.Read(ref cache) ??
-            Interlocked.CompareExchange(ref cache, new TypeCache(), null) ??
-            cache;
+        internal TypeCache Cache
+        {
+            get
+            {
+                if (cache == null)
+                    LazyInitializer.EnsureInitialized(ref cache, () => new TypeCache());
+
+                return cache;
+            }
+        }
 
         internal sealed class TypeCache
         {
@@ -1859,7 +1864,7 @@ namespace System
             ListBuilder<ConstructorInfo> ctors = GetConstructorCandidates(
                 null,
                 BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly, CallingConventions.Any,
-                Type.EmptyTypes, false);
+                Array.Empty<Type>(), false);
 
             if (ctors.Count == 1)
                 cache.default_ctor = ctor = (RuntimeConstructorInfo)ctors[0];
@@ -1922,6 +1927,21 @@ namespace System
             }
 
             return m_serializationCtor;
+        }
+
+        internal object? CreateInstanceSlow(bool publicOnly, bool wrapExceptions, bool skipCheckThis, bool fillCache)
+        {
+            //bool bNeedSecurityCheck = true;
+            //bool bCanBeCached = false;
+            //bool bSecurityCheckOff = false;
+
+            if (!skipCheckThis)
+                CreateInstanceCheckThis();
+
+            //if (!fillCache)
+            //  bSecurityCheckOff = true;
+
+            return CreateInstanceMono(!publicOnly, wrapExceptions);
         }
 
         private object? CreateInstanceMono(bool nonPublic, bool wrapExceptions)
@@ -2251,7 +2271,7 @@ namespace System
             var paramInfo = new Mono.RuntimeGenericParamInfoHandle(RuntimeTypeHandle.GetGenericParameterInfo(this));
             Type[] constraints = paramInfo.Constraints;
 
-            return constraints ?? Type.EmptyTypes;
+            return constraints ?? Array.Empty<Type>();
         }
 
         internal static object CreateInstanceForAnotherGenericParameter(Type genericType, RuntimeType genericArgument)
@@ -2491,7 +2511,7 @@ namespace System
             get
             {
                 // See https://github.com/mono/mono/issues/18180 and
-                // https://github.com/dotnet/runtime/blob/69e114c1abf91241a0eeecf1ecceab4711b8aa62/src/coreclr/System.Private.CoreLib/src/System/RuntimeType.CoreCLR.cs#L1505-L1509
+                // https://github.com/dotnet/runtime/blob/f23e2796ab5f6fea71c9fdacac024822280253db/src/coreclr/src/System.Private.CoreLib/src/System/RuntimeType.CoreCLR.cs#L1468-L1472
                 if (ContainsGenericParameters && !GetRootElementType().IsGenericTypeDefinition)
                     return null;
 

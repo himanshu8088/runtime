@@ -254,16 +254,14 @@ namespace System.Security.Cryptography.Encryption.Des.Tests
             }
         }
 
-        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows7))]
-        [InlineData(PaddingMode.None)]
-        [InlineData(PaddingMode.Zeros)]
-        public static void VerifyKnownTransform_CFB8_NoOrZeroPadding_0(PaddingMode paddingMode)
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows7))]
+        public static void VerifyKnownTransform_CFB8_NoPadding_0()
         {
             // NIST CAVS TDESMMT.ZIP TCFB8MMT2.rsp, [DECRYPT] COUNT=0
             // used only key1, cipherBytes computed using openssl
             TestDESTransformDirectKey(
                 CipherMode.CFB,
-                paddingMode,
+                PaddingMode.None,
                 key: "fb978a0b6dc2c467".HexToByteArray(),
                 iv: "8b97579ea5ac300f".HexToByteArray(),
                 plainBytes: "80".HexToByteArray(),
@@ -272,16 +270,14 @@ namespace System.Security.Cryptography.Encryption.Des.Tests
             );
         }
 
-        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows7))]
-        [InlineData(PaddingMode.None)]
-        [InlineData(PaddingMode.Zeros)]
-        public static void VerifyKnownTransform_CFB8_NoOrZeroPadding_1(PaddingMode paddingMode)
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows7))]
+        public static void VerifyKnownTransform_CFB8_NoPadding_1()
         {
             // NIST CAVS TDESMMT.ZIP TCFB8MMT2.rsp, [DECRYPT] COUNT=1
             // used only key1, cipherBytes computed using openssl
             TestDESTransformDirectKey(
                 CipherMode.CFB,
-                paddingMode,
+                PaddingMode.None,
                 key: "9b04c86dd31a8a58".HexToByteArray(),
                 iv: "52cd77d49fc72347".HexToByteArray(),
                 plainBytes: "2fef".HexToByteArray(),
@@ -290,16 +286,14 @@ namespace System.Security.Cryptography.Encryption.Des.Tests
             );
         }
 
-        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows7))]
-        [InlineData(PaddingMode.None)]
-        [InlineData(PaddingMode.Zeros)]
-        public static void VerifyKnownTransform_CFB8_NoOrZeroPadding_2(PaddingMode paddingMode)
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows7))]
+        public static void VerifyKnownTransform_CFB8_NoPadding_2()
         {
             // NIST CAVS TDESMMT.ZIP TCFB8MMT2.rsp, [DECRYPT] COUNT=2
             // used only key1, cipherBytes computed using openssl
             TestDESTransformDirectKey(
                 CipherMode.CFB,
-                paddingMode,
+                PaddingMode.None,
                 key: "fbb667e340586b5b".HexToByteArray(),
                 iv: "459e8b8736715791".HexToByteArray(),
                 plainBytes: "061704".HexToByteArray(),
@@ -371,16 +365,14 @@ namespace System.Security.Cryptography.Encryption.Des.Tests
             }
         }
 
-        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows7))]
-        [InlineData(PaddingMode.None)]
-        [InlineData(PaddingMode.Zeros)]
-        public static void VerifyKnownTransform_CFB8_NoOrZeroPadding_3(PaddingMode paddingMode)
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows7))]
+        public static void VerifyKnownTransform_CFB8_NoPadding_3()
         {
             // NIST CAVS TDESMMT.ZIP TCFB8MMT2.rsp, [DECRYPT] COUNT=3
             // used only key1, cipherBytes computed using openssl
             TestDESTransformDirectKey(
                 CipherMode.CFB,
-                paddingMode,
+                PaddingMode.None,
                 key: "4a575d02515d40b0".HexToByteArray(),
                 iv: "ab27e9f02affa532".HexToByteArray(),
                 plainBytes: "55f75b95".HexToByteArray(),
@@ -405,16 +397,14 @@ namespace System.Security.Cryptography.Encryption.Des.Tests
             );
         }
 
-        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows7))]
-        [InlineData(PaddingMode.None)]
-        [InlineData(PaddingMode.Zeros)]
-        public static void VerifyKnownTransform_CFB8_NoOrZeroPadding_4(PaddingMode paddingMode)
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows7))]
+        public static void VerifyKnownTransform_CFB8_NoPadding_4()
         {
             // NIST CAVS TDESMMT.ZIP TCFB8MMT2.rsp, [DECRYPT] COUNT=4
             // used only key1, cipherBytes computed using openssl
             TestDESTransformDirectKey(
                 CipherMode.CFB,
-                paddingMode,
+                PaddingMode.None,
                 key: "91a834855e6bab31".HexToByteArray(),
                 iv: "7838aaad4e64640b".HexToByteArray(),
                 plainBytes: "c3851c0ab4".HexToByteArray(),
@@ -423,16 +413,14 @@ namespace System.Security.Cryptography.Encryption.Des.Tests
             );
         }
 
-        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows7))]
-        [InlineData(PaddingMode.None)]
-        [InlineData(PaddingMode.Zeros)]
-        public static void VerifyKnownTransform_CFB8_NoOrZeroPadding_5(PaddingMode paddingMode)
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows7))]
+        public static void VerifyKnownTransform_CFB8_NoPadding_5()
         {
             // NIST CAVS TDESMMT.ZIP TCFB8MMT2.rsp, [DECRYPT] COUNT=5
             // used only key1, cipherBytes computed using openssl
             TestDESTransformDirectKey(
                 CipherMode.CFB,
-                paddingMode,
+                PaddingMode.None,
                 key: "04d923abd9291c3e".HexToByteArray(),
                 iv: "191f8794944e601c".HexToByteArray(),
                 plainBytes: "6fe8f67d2af1".HexToByteArray(),
@@ -441,16 +429,14 @@ namespace System.Security.Cryptography.Encryption.Des.Tests
             );
         }
 
-        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows7))]
-        [InlineData(PaddingMode.None)]
-        [InlineData(PaddingMode.Zeros)]
-        public static void VerifyKnownTransform_CFB8_NoOrZeroPadding_6(PaddingMode paddingMode)
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows7))]
+        public static void VerifyKnownTransform_CFB8_NoPadding_6()
         {
             // NIST CAVS TDESMMT.ZIP TCFB8MMT2.rsp, [DECRYPT] COUNT=6
             // used only key1, cipherBytes computed using openssl
             TestDESTransformDirectKey(
                 CipherMode.CFB,
-                paddingMode,
+                PaddingMode.None,
                 key: "a7799e7f5dfe54ce".HexToByteArray(),
                 iv: "370184c749d04a20".HexToByteArray(),
                 plainBytes: "2b4228b769795b".HexToByteArray(),
@@ -459,16 +445,14 @@ namespace System.Security.Cryptography.Encryption.Des.Tests
             );
         }
 
-        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows7))]
-        [InlineData(PaddingMode.None)]
-        [InlineData(PaddingMode.Zeros)]
-        public static void VerifyKnownTransform_CFB8_NoOrZeroPadding_7(PaddingMode paddingMode)
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows7))]
+        public static void VerifyKnownTransform_CFB8_NoPadding_7()
         {
             // NIST CAVS TDESMMT.ZIP TCFB8MMT2.rsp, [DECRYPT] COUNT=7
             // used only key1, cipherBytes computed using openssl
             TestDESTransformDirectKey(
                 CipherMode.CFB,
-                paddingMode,
+                PaddingMode.None,
                 key: "6bfe3d3df8c1e0d3".HexToByteArray(),
                 iv: "51e4c5c29e858da6".HexToByteArray(),
                 plainBytes: "4cb3554fd0b9ec82".HexToByteArray(),
@@ -477,16 +461,14 @@ namespace System.Security.Cryptography.Encryption.Des.Tests
             );
         }
 
-        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows7))]
-        [InlineData(PaddingMode.None)]
-        [InlineData(PaddingMode.Zeros)]
-        public static void VerifyKnownTransform_CFB8_NoOrZeroPadding_8(PaddingMode paddingMode)
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows7))]
+        public static void VerifyKnownTransform_CFB8_NoPadding_8()
         {
             // NIST CAVS TDESMMT.ZIP TCFB8MMT2.rsp, [DECRYPT] COUNT=8
             // used only key1, cipherBytes computed using openssl
             TestDESTransformDirectKey(
                 CipherMode.CFB,
-                paddingMode,
+                PaddingMode.None,
                 key: "e0264aec13e63db9".HexToByteArray(),
                 iv: "bd8795dba79930d6".HexToByteArray(),
                 plainBytes: "79068e2943f02914af".HexToByteArray(),
@@ -495,16 +477,14 @@ namespace System.Security.Cryptography.Encryption.Des.Tests
             );
         }
 
-        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows7))]
-        [InlineData(PaddingMode.None)]
-        [InlineData(PaddingMode.Zeros)]
-        public static void VerifyKnownTransform_CFB8_NoOrZeroPadding_9(PaddingMode paddingMode)
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindows7))]
+        public static void VerifyKnownTransform_CFB8_NoPadding_9()
         {
             // NIST CAVS TDESMMT.ZIP TCFB8MMT2.rsp, [DECRYPT] COUNT=9
             // used only key1, cipherBytes computed using openssl
             TestDESTransformDirectKey(
                 CipherMode.CFB,
-                paddingMode,
+                PaddingMode.None,
                 key: "7ca28938ba6bec1f".HexToByteArray(),
                 iv: "953896586e49d38f".HexToByteArray(),
                 plainBytes: "2ea956d4a211db6859b7".HexToByteArray(),

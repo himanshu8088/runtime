@@ -2561,9 +2561,7 @@ namespace System
             // "s" is an unfortunate parameter name, but we need to keep it for backward compat.
 
             if (s == null)
-            {
-                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.s);
-            }
+                throw new ArgumentNullException(nameof(s));
 
             unsafe
             {
@@ -2578,7 +2576,7 @@ namespace System
         {
             if (s == null)
             {
-                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.s);
+                throw new ArgumentNullException(nameof(s));
             }
 
             return TryFromBase64Chars(s.AsSpan(), bytes, out bytesWritten);
@@ -2851,9 +2849,7 @@ namespace System
         public static byte[] FromHexString(string s)
         {
             if (s == null)
-            {
-                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.s);
-            }
+                throw new ArgumentNullException(nameof(s));
 
             return FromHexString(s.AsSpan());
         }

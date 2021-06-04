@@ -1,11 +1,10 @@
-#include <eventpipe/ep.h>
-#include <eventpipe/ep-config.h>
-#include <eventpipe/ep-event.h>
-#include <eventpipe/ep-session.h>
-#include <eventpipe/ep-event-instance.h>
-#include <eventpipe/ep-event-payload.h>
-#include <eventpipe/ep-sample-profiler.h>
-#include <eglib/test/test.h>
+#include "mono/eventpipe/ep.h"
+#include "mono/eventpipe/ep-config.h"
+#include "mono/eventpipe/ep-event.h"
+#include "mono/eventpipe/ep-session.h"
+#include "mono/eventpipe/ep-event-instance.h"
+#include "mono/eventpipe/ep-event-payload.h"
+#include "eglib/test/test.h"
 
 #define TEST_PROVIDER_NAME "MyTestProvider"
 #define TEST_FILE "./ep_test_create_file.txt"
@@ -21,31 +20,15 @@ static _CrtMemState eventpipe_memory_diff_snapshot;
 static RESULT
 test_eventpipe_setup (void)
 {
-	uint32_t test_location = 0;
-
 	// Lazy initialized, force now to not show up as leak.
 	ep_rt_os_command_line_get ();
 	ep_rt_managed_command_line_get ();
-
-	test_location = 1;
-
-	// Init profiler, force now to not show up as leaks.
-	// Set long sampling rate to reduce impact.
-	EP_LOCK_ENTER (section1)
-		ep_sample_profiler_init (NULL);
-		ep_sample_profiler_set_sampling_rate (1000 * 1000 * 100);
-	EP_LOCK_EXIT (section1)
-
-	test_location = 2;
 
 #ifdef _CRTDBG_MAP_ALLOC
 	_CrtMemCheckpoint (&eventpipe_memory_start_snapshot);
 #endif
 	ep_thread_get_or_create ();
 	return NULL;
-
-ep_on_error:
-	return FAILED ("Failed at test location=%i", test_location);
 }
 
 static RESULT
@@ -148,11 +131,8 @@ test_create_same_provider_twice (void)
 {
 	RESULT result = NULL;
 	uint32_t test_location = 0;
-	EventPipeProvider *test_provider = NULL;
-	EventPipeProvider *test_provider2 = NULL;
-	EventPipeProvider *returned_test_provider = NULL;
 
-	test_provider = ep_create_provider (TEST_PROVIDER_NAME, NULL, NULL, NULL);
+	EventPipeProvider *test_provider = ep_create_provider (TEST_PROVIDER_NAME, NULL, NULL, NULL);
 	if (!test_provider) {
 		result = FAILED ("Failed to create provider %s, ep_create_provider returned NULL", TEST_PROVIDER_NAME);
 		ep_raise_error ();
@@ -160,7 +140,7 @@ test_create_same_provider_twice (void)
 
 	test_location = 1;
 
-	returned_test_provider = ep_get_provider (TEST_PROVIDER_NAME);
+	EventPipeProvider *returned_test_provider = ep_get_provider (TEST_PROVIDER_NAME);
 	if (!returned_test_provider) {
 		result = FAILED ("Failed to get provider %s, ep_get_provider returned NULL", TEST_PROVIDER_NAME);
 		ep_raise_error ();
@@ -168,9 +148,9 @@ test_create_same_provider_twice (void)
 
 	test_location = 2;
 
-	test_provider2 = ep_create_provider (TEST_PROVIDER_NAME, NULL, NULL, NULL);
-	if (!test_provider2) {
-		result = FAILED ("Creating to create an already existing provider %s", TEST_PROVIDER_NAME);
+	EventPipeProvider *test_provider2 = ep_create_provider (TEST_PROVIDER_NAME, NULL, NULL, NULL);
+	if (test_provider2) {
+		result = FAILED ("Creating an already existing provider %s, succeeded", TEST_PROVIDER_NAME);
 		ep_raise_error ();
 	}
 
@@ -182,14 +162,7 @@ test_create_same_provider_twice (void)
 		ep_raise_error ();
 	}
 
-	test_location = 4;
-	if (returned_test_provider != test_provider) {
-		result = FAILED ("Failed to get provider %s, ep_get_provider returned unexpected provider instance", TEST_PROVIDER_NAME);
-		ep_raise_error ();
-	}
-
 ep_on_exit:
-	ep_delete_provider (test_provider2);
 	ep_delete_provider (test_provider);
 	return result;
 
@@ -208,7 +181,7 @@ test_enable_disable (void)
 
 	EventPipeSessionID session_id = 0;
 	EventPipeProviderConfiguration provider_config;
-	EventPipeProviderConfiguration *current_provider_config = ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOGALWAYS, "");
+	EventPipeProviderConfiguration *current_provider_config = ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOG_ALWAYS, "");
 	ep_raise_error_if_nok (current_provider_config != NULL);
 
 	test_location = 1;
@@ -415,7 +388,7 @@ test_enable_disable_provider_config (void)
 
 	test_location = 5;
 
-	ep_raise_error_if_nok (ep_session_provider_get_logging_level (session_provider) == EP_EVENT_LEVEL_LOGALWAYS);
+	ep_raise_error_if_nok (ep_session_provider_get_logging_level (session_provider) == EP_EVENT_LEVEL_LOG_ALWAYS);
 
 	test_location = 6;
 
@@ -529,7 +502,7 @@ test_create_delete_provider_with_callback (void)
 	EventPipeProvider *test_provider = NULL;
 	EventPipeProviderConfiguration provider_config;
 
-	EventPipeProviderConfiguration *current_provider_config =ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOGALWAYS, "");
+	EventPipeProviderConfiguration *current_provider_config =ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOG_ALWAYS, "");
 	ep_raise_error_if_nok (current_provider_config != NULL);
 
 	test_location = 1;
@@ -630,7 +603,7 @@ test_session_start_streaming (void)
 	EventPipeSessionID session_id = 0;
 	EventPipeProviderConfiguration provider_config;
 
-	EventPipeProviderConfiguration *current_provider_config =ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOGALWAYS, "");
+	EventPipeProviderConfiguration *current_provider_config =ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOG_ALWAYS, "");
 	ep_raise_error_if_nok (current_provider_config != NULL);
 
 	test_location = 1;
@@ -678,7 +651,7 @@ test_session_write_event (void)
 	EventPipeProviderConfiguration *current_provider_config = NULL;
 	bool write_result = false;
 
-	current_provider_config = ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOGALWAYS, "");
+	current_provider_config = ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOG_ALWAYS, "");
 	ep_raise_error_if_nok (current_provider_config != NULL);
 
 	test_location = 1;
@@ -688,7 +661,7 @@ test_session_write_event (void)
 
 	test_location = 2;
 
-	ep_event = ep_provider_add_event (provider, 1, 1, 1, EP_EVENT_LEVEL_LOGALWAYS, false, NULL, 0);
+	ep_event = ep_provider_add_event (provider, 1, 1, 1, EP_EVENT_LEVEL_LOG_ALWAYS, false, NULL, 0);
 	ep_raise_error_if_nok (ep_event != NULL);
 
 	test_location = 3;
@@ -702,7 +675,7 @@ test_session_write_event (void)
 
 	EventPipeEventPayload payload;;
 	ep_event_payload_init (&payload, NULL, 0);
-	write_result = ep_session_write_event ((EventPipeSession *)session_id, ep_rt_thread_get_handle (), ep_event, &payload, NULL, NULL, NULL, NULL);
+	write_result = ep_session_write_event ((EventPipeSession *)session_id, ep_thread_get (), ep_event, &payload, NULL, NULL, NULL, NULL);
 	ep_event_payload_fini (&payload);
 
 	ep_raise_error_if_nok (write_result == true);
@@ -731,7 +704,7 @@ test_session_write_event_seq_point (void)
 	EventPipeProviderConfiguration *current_provider_config = NULL;
 	bool write_result = false;
 
-	current_provider_config = ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOGALWAYS, "");
+	current_provider_config = ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOG_ALWAYS, "");
 	ep_raise_error_if_nok (current_provider_config != NULL);
 
 	test_location = 1;
@@ -741,7 +714,7 @@ test_session_write_event_seq_point (void)
 
 	test_location = 2;
 
-	ep_event = ep_provider_add_event (provider, 1, 1, 1, EP_EVENT_LEVEL_LOGALWAYS, false, NULL, 0);
+	ep_event = ep_provider_add_event (provider, 1, 1, 1, EP_EVENT_LEVEL_LOG_ALWAYS, false, NULL, 0);
 	ep_raise_error_if_nok (ep_event != NULL);
 
 	test_location = 3;
@@ -755,7 +728,7 @@ test_session_write_event_seq_point (void)
 
 	EventPipeEventPayload payload;;
 	ep_event_payload_init (&payload, NULL, 0);
-	write_result = ep_session_write_event ((EventPipeSession *)session_id, ep_rt_thread_get_handle (), ep_event, &payload, NULL, NULL, NULL, NULL);
+	write_result = ep_session_write_event ((EventPipeSession *)session_id, ep_thread_get (), ep_event, &payload, NULL, NULL, NULL, NULL);
 	ep_event_payload_fini (&payload);
 
 	ep_raise_error_if_nok (write_result == true);
@@ -788,7 +761,7 @@ test_session_write_wait_get_next_event (void)
 	EventPipeProviderConfiguration *current_provider_config = NULL;
 	bool write_result = false;
 
-	current_provider_config = ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOGALWAYS, "");
+	current_provider_config = ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOG_ALWAYS, "");
 	ep_raise_error_if_nok (current_provider_config != NULL);
 
 	test_location = 1;
@@ -798,7 +771,7 @@ test_session_write_wait_get_next_event (void)
 
 	test_location = 2;
 
-	ep_event = ep_provider_add_event (provider, 1, 1, 1, EP_EVENT_LEVEL_LOGALWAYS, false, NULL, 0);
+	ep_event = ep_provider_add_event (provider, 1, 1, 1, EP_EVENT_LEVEL_LOG_ALWAYS, false, NULL, 0);
 	ep_raise_error_if_nok (ep_event != NULL);
 
 	test_location = 3;
@@ -812,7 +785,7 @@ test_session_write_wait_get_next_event (void)
 
 	EventPipeEventPayload payload;;
 	ep_event_payload_init (&payload, NULL, 0);
-	write_result = ep_session_write_event ((EventPipeSession *)session_id, ep_rt_thread_get_handle (), ep_event, &payload, NULL, NULL, NULL, NULL);
+	write_result = ep_session_write_event ((EventPipeSession *)session_id, ep_thread_get (), ep_event, &payload, NULL, NULL, NULL, NULL);
 	ep_event_payload_fini (&payload);
 
 	ep_raise_error_if_nok (write_result == true);
@@ -853,7 +826,7 @@ test_session_write_get_next_event (void)
 	EventPipeProviderConfiguration *current_provider_config = NULL;
 	bool write_result = false;
 
-	current_provider_config = ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOGALWAYS, "");
+	current_provider_config = ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOG_ALWAYS, "");
 	ep_raise_error_if_nok (current_provider_config != NULL);
 
 	test_location = 1;
@@ -863,7 +836,7 @@ test_session_write_get_next_event (void)
 
 	test_location = 2;
 
-	ep_event = ep_provider_add_event (provider, 1, 1, 1, EP_EVENT_LEVEL_LOGALWAYS, false, NULL, 0);
+	ep_event = ep_provider_add_event (provider, 1, 1, 1, EP_EVENT_LEVEL_LOG_ALWAYS, false, NULL, 0);
 	ep_raise_error_if_nok (ep_event != NULL);
 
 	test_location = 3;
@@ -884,7 +857,7 @@ test_session_write_get_next_event (void)
 
 	EventPipeEventPayload payload;;
 	ep_event_payload_init (&payload, NULL, 0);
-	write_result = ep_session_write_event ((EventPipeSession *)session_id, ep_rt_thread_get_handle (), ep_event, &payload, NULL, NULL, NULL, NULL);
+	write_result = ep_session_write_event ((EventPipeSession *)session_id, ep_thread_get (), ep_event, &payload, NULL, NULL, NULL, NULL);
 	ep_event_payload_fini (&payload);
 
 	ep_raise_error_if_nok (write_result == true);
@@ -930,7 +903,7 @@ test_session_write_suspend_event (void)
 	EventPipeProviderConfiguration *current_provider_config = NULL;
 	bool write_result = false;
 
-	current_provider_config = ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOGALWAYS, "");
+	current_provider_config = ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOG_ALWAYS, "");
 	ep_raise_error_if_nok (current_provider_config != NULL);
 
 	test_location = 1;
@@ -940,7 +913,7 @@ test_session_write_suspend_event (void)
 
 	test_location = 2;
 
-	ep_event = ep_provider_add_event (provider, 1, 1, 1, EP_EVENT_LEVEL_LOGALWAYS, false, NULL, 0);
+	ep_event = ep_provider_add_event (provider, 1, 1, 1, EP_EVENT_LEVEL_LOG_ALWAYS, false, NULL, 0);
 	ep_raise_error_if_nok (ep_event != NULL);
 
 	test_location = 3;
@@ -954,7 +927,7 @@ test_session_write_suspend_event (void)
 
 	EventPipeEventPayload payload;;
 	ep_event_payload_init (&payload, NULL, 0);
-	write_result = ep_session_write_event ((EventPipeSession *)session_id, ep_rt_thread_get_handle (), ep_event, &payload, NULL, NULL, NULL, NULL);
+	write_result = ep_session_write_event ((EventPipeSession *)session_id, ep_thread_get (), ep_event, &payload, NULL, NULL, NULL, NULL);
 	ep_event_payload_fini (&payload);
 
 	ep_raise_error_if_nok (write_result == true);
@@ -990,7 +963,7 @@ test_write_event (void)
 	EventPipeProviderConfiguration provider_config;
 	EventPipeProviderConfiguration *current_provider_config = NULL;
 
-	current_provider_config = ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOGALWAYS, "");
+	current_provider_config = ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOG_ALWAYS, "");
 	ep_raise_error_if_nok (current_provider_config != NULL);
 
 	test_location = 1;
@@ -1000,7 +973,7 @@ test_write_event (void)
 
 	test_location = 2;
 
-	ep_event = ep_provider_add_event (provider, 1, 1, 1, EP_EVENT_LEVEL_LOGALWAYS, false, NULL, 0);
+	ep_event = ep_provider_add_event (provider, 1, 1, 1, EP_EVENT_LEVEL_LOG_ALWAYS, false, NULL, 0);
 	ep_raise_error_if_nok (ep_event != NULL);
 
 	test_location = 3;
@@ -1014,7 +987,7 @@ test_write_event (void)
 
 	EventData data[1];
 	ep_event_data_init (&data[0], 0, 0, 0);
-	ep_write_event_2 (ep_event, data, EP_ARRAY_SIZE (data), NULL, NULL);
+	ep_write_event (ep_event, data, EP_ARRAY_SIZE (data), NULL, NULL);
 	ep_event_data_fini (data);
 
 ep_on_exit:
@@ -1041,7 +1014,7 @@ test_write_get_next_event (void)
 	EventPipeProviderConfiguration *current_provider_config = NULL;
 	EventPipeEventInstance *event_instance = NULL;
 
-	current_provider_config = ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOGALWAYS, "");
+	current_provider_config = ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOG_ALWAYS, "");
 	ep_raise_error_if_nok (current_provider_config != NULL);
 
 	test_location = 1;
@@ -1051,7 +1024,7 @@ test_write_get_next_event (void)
 
 	test_location = 2;
 
-	ep_event = ep_provider_add_event (provider, 1, 1, 1, EP_EVENT_LEVEL_LOGALWAYS, false, NULL, 0);
+	ep_event = ep_provider_add_event (provider, 1, 1, 1, EP_EVENT_LEVEL_LOG_ALWAYS, false, NULL, 0);
 	ep_raise_error_if_nok (ep_event != NULL);
 
 	test_location = 3;
@@ -1065,7 +1038,7 @@ test_write_get_next_event (void)
 
 	EventData data[1];
 	ep_event_data_init (&data[0], 0, 0, 0);
-	ep_write_event_2 (ep_event, data, EP_ARRAY_SIZE (data), NULL, NULL);
+	ep_write_event (ep_event, data, EP_ARRAY_SIZE (data), NULL, NULL);
 	ep_event_data_fini (data);
 
 	event_instance = ep_get_next_event (session_id);
@@ -1096,12 +1069,11 @@ test_write_wait_get_next_event (void)
 	EventPipeProvider *provider = NULL;
 	EventPipeEvent *ep_event = NULL;
 	EventPipeSessionID session_id = 0;
-	EventPipeSession *session = NULL;
 	EventPipeProviderConfiguration provider_config;
 	EventPipeProviderConfiguration *current_provider_config = NULL;
 	EventPipeEventInstance *event_instance = NULL;
 
-	current_provider_config = ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOGALWAYS, "");
+	current_provider_config = ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOG_ALWAYS, "");
 	ep_raise_error_if_nok (current_provider_config != NULL);
 
 	test_location = 1;
@@ -1111,7 +1083,7 @@ test_write_wait_get_next_event (void)
 
 	test_location = 2;
 
-	ep_event = ep_provider_add_event (provider, 1, 1, 1, EP_EVENT_LEVEL_LOGALWAYS, false, NULL, 0);
+	ep_event = ep_provider_add_event (provider, 1, 1, 1, EP_EVENT_LEVEL_LOG_ALWAYS, false, NULL, 0);
 	ep_raise_error_if_nok (ep_event != NULL);
 
 	test_location = 3;
@@ -1119,21 +1091,18 @@ test_write_wait_get_next_event (void)
 	session_id = ep_enable (TEST_FILE, 1, current_provider_config, 1, EP_SESSION_TYPE_FILE, EP_SERIALIZATION_FORMAT_NETTRACE_V4,false, NULL, false);
 	ep_raise_error_if_nok (session_id != 0);
 
-	session = ep_get_session (session_id);
-	ep_raise_error_if_nok (session != NULL);
-
 	test_location = 4;
 
 	ep_start_streaming (session_id);
 
 	// Starts as signaled.
 	// TODO: Is this expected behavior, just a way to notify observer that we are up and running?
-	uint32_t test = ep_rt_wait_event_wait (ep_session_get_wait_event (session), 0, false);
+	uint32_t test = ep_rt_wait_event_wait ((ep_rt_wait_event_handle_t *)ep_get_wait_handle (session_id), 0, false);
 	ep_raise_error_if_nok (test == 0);
 
 	test_location = 5;
 
-	test = ep_rt_wait_event_wait (ep_session_get_wait_event (session), 0, false);
+	test = ep_rt_wait_event_wait ((ep_rt_wait_event_handle_t *)ep_get_wait_handle (session_id), 0, false);
 	ep_raise_error_if_nok (test != 0);
 
 	test_location = 6;
@@ -1141,11 +1110,11 @@ test_write_wait_get_next_event (void)
 	EventData data[1];
 	ep_event_data_init (&data[0], 0, 0, 0);
 	for (int i = 0; i < 100; i++)
-		ep_write_event_2 (ep_event, data, EP_ARRAY_SIZE (data), NULL, NULL);
+		ep_write_event (ep_event, data, EP_ARRAY_SIZE (data), NULL, NULL);
 	ep_event_data_fini (data);
 
 	//Should be signaled, since we should have buffers put in readonly by now.
-	test = ep_rt_wait_event_wait (ep_session_get_wait_event (session), 0, false);
+	test = ep_rt_wait_event_wait ((ep_rt_wait_event_handle_t *)ep_get_wait_handle (session_id), 0, false);
 	ep_raise_error_if_nok (test == 0);
 
 	test_location = 7;
@@ -1181,7 +1150,7 @@ test_write_event_perf (void)
 	int64_t accumulted_write_time_ticks = 0;
 	uint32_t events_written = 0;
 
-	current_provider_config = ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOGALWAYS, "");
+	current_provider_config = ep_provider_config_init (&provider_config, TEST_PROVIDER_NAME, 1, EP_EVENT_LEVEL_LOG_ALWAYS, "");
 	ep_raise_error_if_nok (current_provider_config != NULL);
 
 	test_location = 1;
@@ -1191,7 +1160,7 @@ test_write_event_perf (void)
 
 	test_location = 2;
 
-	ep_event = ep_provider_add_event (provider, 1, 1, 1, EP_EVENT_LEVEL_LOGALWAYS, false, NULL, 0);
+	ep_event = ep_provider_add_event (provider, 1, 1, 1, EP_EVENT_LEVEL_LOG_ALWAYS, false, NULL, 0);
 	ep_raise_error_if_nok (ep_event != NULL);
 
 	test_location = 3;
@@ -1210,7 +1179,7 @@ test_write_event_perf (void)
 	for (events_written = 0; events_written < 10 * 1000 * 1000; events_written += 1000) {
 		int64_t start = ep_perf_timestamp_get ();
 		for (uint32_t i = 0; i < 1000; i++)
-			ep_write_event_2 (ep_event, data, EP_ARRAY_SIZE (data), NULL, NULL);
+			ep_write_event (ep_event, data, EP_ARRAY_SIZE (data), NULL, NULL);
 		int64_t stop = ep_perf_timestamp_get ();
 		accumulted_write_time_ticks += stop - start;
 
@@ -1246,56 +1215,20 @@ ep_on_error:
 // TODO: Add consumer thread test, flushing file buffers/session, acting on signal.
 
 static RESULT
-test_eventpipe_mem_checkpoint (void)
+test_eventpipe_teardown (void)
 {
-	RESULT result = NULL;
-#ifdef _CRTDBG_MAP_ALLOC
 	// Need to emulate a thread exit to make sure TLS gets cleaned up for current thread
 	// or we will get memory leaks reported.
 	ep_rt_mono_thread_exited ();
 
-	_CrtMemCheckpoint (&eventpipe_memory_end_snapshot);
-	if ( _CrtMemDifference(&eventpipe_memory_diff_snapshot, &eventpipe_memory_start_snapshot, &eventpipe_memory_end_snapshot) ) {
-		_CrtMemDumpStatistics( &eventpipe_memory_diff_snapshot );
-		result = FAILED ("Memory leak detected!");
-	}
-	_CrtMemCheckpoint (&eventpipe_memory_start_snapshot);
-#endif
-	return result;
-}
-
-static RESULT
-test_eventpipe_reset_mem_checkpoint (void)
-{
-#ifdef _CRTDBG_MAP_ALLOC
-	_CrtMemCheckpoint (&eventpipe_memory_start_snapshot);
-#endif
-	return NULL;
-}
-
-
-static RESULT
-test_eventpipe_teardown (void)
-{
-	uint32_t test_location = 0;
-
 #ifdef _CRTDBG_MAP_ALLOC
 	_CrtMemCheckpoint (&eventpipe_memory_end_snapshot);
-	if ( _CrtMemDifference(&eventpipe_memory_diff_snapshot, &eventpipe_memory_start_snapshot, &eventpipe_memory_end_snapshot) ) {
+	if ( _CrtMemDifference( &eventpipe_memory_diff_snapshot, &eventpipe_memory_start_snapshot, &eventpipe_memory_end_snapshot) ) {
 		_CrtMemDumpStatistics( &eventpipe_memory_diff_snapshot );
 		return FAILED ("Memory leak detected!");
 	}
 #endif
-	test_location = 1;
-
-	EP_LOCK_ENTER (section1)
-		ep_sample_profiler_shutdown ();
-	EP_LOCK_EXIT (section1)
-
 	return NULL;
-
-ep_on_error:
-	return FAILED ("Failed at test location=%i", test_location);
 }
 
 static Test ep_tests [] = {
@@ -1305,7 +1238,9 @@ static Test ep_tests [] = {
 	{"test_get_provider", test_get_provider},
 	{"test_create_same_provider_twice", test_create_same_provider_twice},
 	{"test_enable_disable", test_enable_disable},
+	{"test_enable_disable_default_provider_config", test_enable_disable_default_provider_config},
 	{"test_enable_disable_provider_config", test_enable_disable_provider_config},
+	{"test_enable_disable_provider_parse_default_config", test_enable_disable_provider_parse_default_config},
 	{"test_create_delete_provider_with_callback", test_create_delete_provider_with_callback},
 	{"test_build_event_metadata", test_build_event_metadata},
 	{"test_session_start_streaming", test_session_start_streaming},
@@ -1320,10 +1255,6 @@ static Test ep_tests [] = {
 #ifdef TEST_PERF
 	{"test_write_event_perf", test_write_event_perf},
 #endif
-	{"test_eventpipe_mem_checkpoint", test_eventpipe_mem_checkpoint},
-	{"test_enable_disable_default_provider_config", test_enable_disable_default_provider_config},
-	{"test_enable_disable_provider_parse_default_config", test_enable_disable_provider_parse_default_config},
-	{"test_eventpipe_reset_mem_checkpoint", test_eventpipe_reset_mem_checkpoint},
 	{"test_eventpipe_teardown", test_eventpipe_teardown},
 	{NULL, NULL}
 };

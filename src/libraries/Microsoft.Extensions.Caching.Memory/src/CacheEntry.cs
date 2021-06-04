@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -13,44 +12,86 @@ namespace Microsoft.Extensions.Caching.Memory
 {
     internal class CacheEntry : ICacheEntry
     {
+        private bool _disposed;
         private static readonly Action<object> ExpirationCallback = ExpirationTokensExpired;
-
-        private readonly object _lock = new object();
-        private readonly MemoryCache _cache;
-
+        private readonly Action<CacheEntry> _notifyCacheOfExpiration;
+        private readonly Action<CacheEntry> _notifyCacheEntryCommit;
         private IList<IDisposable> _expirationTokenRegistrations;
         private IList<PostEvictionCallbackRegistration> _postEvictionCallbacks;
-        private IList<IChangeToken> _expirationTokens;
-        private TimeSpan? _absoluteExpirationRelativeToNow;
+        private bool _isExpired;
+        private readonly ILogger _logger;
+
+        internal IList<IChangeToken> _expirationTokens;
+        internal DateTimeOffset? _absoluteExpiration;
+        internal TimeSpan? _absoluteExpirationRelativeToNow;
         private TimeSpan? _slidingExpiration;
         private long? _size;
-        private CacheEntry _previous; // this field is not null only before the entry is added to the cache
+        private IDisposable _scope;
         private object _value;
-        private int _state; // actually a [Flag] enum called "State"
+        private bool _valueHasBeenSet;
 
-        internal CacheEntry(object key, MemoryCache memoryCache)
+        internal readonly object _lock = new object();
+
+        internal CacheEntry(
+            object key,
+            Action<CacheEntry> notifyCacheEntryCommit,
+            Action<CacheEntry> notifyCacheOfExpiration,
+            ILogger logger)
         {
-            Key = key ?? throw new ArgumentNullException(nameof(key));
-            _cache = memoryCache ?? throw new ArgumentNullException(nameof(memoryCache));
-            _previous = CacheEntryHelper.EnterScope(this);
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
+            if (notifyCacheEntryCommit == null)
+            {
+                throw new ArgumentNullException(nameof(notifyCacheEntryCommit));
+            }
+
+            if (notifyCacheOfExpiration == null)
+            {
+                throw new ArgumentNullException(nameof(notifyCacheOfExpiration));
+            }
+
+            if (logger == null)
+            {
+                throw new ArgumentNullException(nameof(logger));
+            }
+
+            Key = key;
+            _notifyCacheEntryCommit = notifyCacheEntryCommit;
+            _notifyCacheOfExpiration = notifyCacheOfExpiration;
+
+            _scope = CacheEntryHelper.EnterScope(this);
+            _logger = logger;
         }
 
         /// <summary>
         /// Gets or sets an absolute expiration date for the cache entry.
         /// </summary>
-        public DateTimeOffset? AbsoluteExpiration { get; set; }
+        public DateTimeOffset? AbsoluteExpiration
+        {
+            get
+            {
+                return _absoluteExpiration;
+            }
+            set
+            {
+                _absoluteExpiration = value;
+            }
+        }
 
         /// <summary>
         /// Gets or sets an absolute expiration time, relative to now.
         /// </summary>
         public TimeSpan? AbsoluteExpirationRelativeToNow
         {
-            get => _absoluteExpirationRelativeToNow;
+            get
+            {
+                return _absoluteExpirationRelativeToNow;
+            }
             set
             {
-                // this method does not set AbsoluteExpiration as it would require calling Clock.UtcNow twice:
-                // once here and once in MemoryCache.SetEntry
-
                 if (value <= TimeSpan.Zero)
                 {
                     throw new ArgumentOutOfRangeException(
@@ -69,7 +110,10 @@ namespace Microsoft.Extensions.Caching.Memory
         /// </summary>
         public TimeSpan? SlidingExpiration
         {
-            get => _slidingExpiration;
+            get
+            {
+                return _slidingExpiration;
+            }
             set
             {
                 if (value <= TimeSpan.Zero)
@@ -79,7 +123,6 @@ namespace Microsoft.Extensions.Caching.Memory
                         value,
                         "The sliding expiration value must be positive.");
                 }
-
                 _slidingExpiration = value;
             }
         }
@@ -87,12 +130,34 @@ namespace Microsoft.Extensions.Caching.Memory
         /// <summary>
         /// Gets the <see cref="IChangeToken"/> instances which cause the cache entry to expire.
         /// </summary>
-        public IList<IChangeToken> ExpirationTokens => _expirationTokens ??= new List<IChangeToken>();
+        public IList<IChangeToken> ExpirationTokens
+        {
+            get
+            {
+                if (_expirationTokens == null)
+                {
+                    _expirationTokens = new List<IChangeToken>();
+                }
+
+                return _expirationTokens;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the callbacks will be fired after the cache entry is evicted from the cache.
         /// </summary>
-        public IList<PostEvictionCallbackRegistration> PostEvictionCallbacks => _postEvictionCallbacks ??= new List<PostEvictionCallbackRegistration>();
+        public IList<PostEvictionCallbackRegistration> PostEvictionCallbacks
+        {
+            get
+            {
+                if (_postEvictionCallbacks == null)
+                {
+                    _postEvictionCallbacks = new List<PostEvictionCallbackRegistration>();
+                }
+
+                return _postEvictionCallbacks;
+            }
+        }
 
         /// <summary>
         /// Gets or sets the priority for keeping the cache entry in the cache during a
@@ -125,7 +190,7 @@ namespace Microsoft.Extensions.Caching.Memory
             set
             {
                 _value = value;
-                IsValueSet = true;
+                _valueHasBeenSet = true;
             }
         }
 
@@ -133,38 +198,32 @@ namespace Microsoft.Extensions.Caching.Memory
 
         internal EvictionReason EvictionReason { get; private set; }
 
-        private bool IsDisposed { get => ((State)_state).HasFlag(State.IsDisposed); set => Set(State.IsDisposed, value); }
-
-        private bool IsExpired { get => ((State)_state).HasFlag(State.IsExpired); set => Set(State.IsExpired, value); }
-
-        private bool IsValueSet { get => ((State)_state).HasFlag(State.IsValueSet); set => Set(State.IsValueSet, value); }
-
         public void Dispose()
         {
-            if (!IsDisposed)
+            if (!_disposed)
             {
-                IsDisposed = true;
+                _disposed = true;
+
+                // Ensure the _scope reference is cleared because it can reference other CacheEntry instances.
+                // This CacheEntry is going to be put into a MemoryCache, and we don't want to root unnecessary objects.
+                _scope.Dispose();
+                _scope = null;
 
                 // Don't commit or propagate options if the CacheEntry Value was never set.
                 // We assume an exception occurred causing the caller to not set the Value successfully,
                 // so don't use this entry.
-                if (IsValueSet)
+                if (_valueHasBeenSet)
                 {
-                    _cache.SetEntry(this);
-
-                    if (_previous != null && CanPropagateOptions())
-                    {
-                        PropagateOptions(_previous);
-                    }
+                    _notifyCacheEntryCommit(this);
+                    PropagateOptions(CacheEntryHelper.Current);
                 }
-
-                CacheEntryHelper.ExitScope(this, _previous);
-                _previous = null; // we don't want to root unnecessary objects
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal bool CheckExpired(in DateTimeOffset now) => IsExpired || CheckForExpiredTime(now) || CheckForExpiredTokens();
+        internal bool CheckExpired(DateTimeOffset now)
+        {
+            return _isExpired || CheckForExpiredTime(now) || CheckForExpiredTokens();
+        }
 
         internal void SetExpired(EvictionReason reason)
         {
@@ -172,48 +231,31 @@ namespace Microsoft.Extensions.Caching.Memory
             {
                 EvictionReason = reason;
             }
-            IsExpired = true;
+            _isExpired = true;
             DetachTokens();
         }
 
-        private bool CheckForExpiredTime(in DateTimeOffset now)
+        private bool CheckForExpiredTime(DateTimeOffset now)
         {
-            if (!AbsoluteExpiration.HasValue && !_slidingExpiration.HasValue)
+            if (_absoluteExpiration.HasValue && _absoluteExpiration.Value <= now)
             {
-                return false;
+                SetExpired(EvictionReason.Expired);
+                return true;
             }
 
-            return FullCheck(now);
-
-            bool FullCheck(in DateTimeOffset offset)
+            if (_slidingExpiration.HasValue
+                && (now - LastAccessed) >= _slidingExpiration)
             {
-                if (AbsoluteExpiration.HasValue && AbsoluteExpiration.Value <= offset)
-                {
-                    SetExpired(EvictionReason.Expired);
-                    return true;
-                }
-
-                if (_slidingExpiration.HasValue
-                    && (offset - LastAccessed) >= _slidingExpiration)
-                {
-                    SetExpired(EvictionReason.Expired);
-                    return true;
-                }
-
-                return false;
+                SetExpired(EvictionReason.Expired);
+                return true;
             }
+
+            return false;
         }
 
-        private bool CheckForExpiredTokens()
+        internal bool CheckForExpiredTokens()
         {
-            if (_expirationTokens == null)
-            {
-                return false;
-            }
-
-            return CheckTokens();
-
-            bool CheckTokens()
+            if (_expirationTokens != null)
             {
                 for (int i = 0; i < _expirationTokens.Count; i++)
                 {
@@ -224,8 +266,8 @@ namespace Microsoft.Extensions.Caching.Memory
                         return true;
                     }
                 }
-                return false;
             }
+            return false;
         }
 
         internal void AttachTokens()
@@ -258,13 +300,12 @@ namespace Microsoft.Extensions.Caching.Memory
             {
                 var entry = (CacheEntry)state;
                 entry.SetExpired(EvictionReason.TokenExpired);
-                entry._cache.EntryExpired(entry);
+                entry._notifyCacheOfExpiration(entry);
             }, obj, CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
         }
 
         private void DetachTokens()
         {
-            // _expirationTokenRegistrations is not checked for null, because AttachTokens might initialize it under lock
             lock (_lock)
             {
                 IList<IDisposable> registrations = _expirationTokenRegistrations;
@@ -309,13 +350,10 @@ namespace Microsoft.Extensions.Caching.Memory
                 catch (Exception e)
                 {
                     // This will be invoked on a background thread, don't let it throw.
-                    entry._cache._logger.LogError(e, "EvictionCallback invoked failed");
+                    entry._logger.LogError(e, "EvictionCallback invoked failed");
                 }
             }
         }
-
-        // this simple check very often allows us to avoid expensive call to PropagateOptions(CacheEntryHelper.Current)
-        internal bool CanPropagateOptions() => _expirationTokens != null || AbsoluteExpiration.HasValue;
 
         internal void PropagateOptions(CacheEntry parent)
         {
@@ -340,33 +378,13 @@ namespace Microsoft.Extensions.Caching.Memory
                 }
             }
 
-            if (AbsoluteExpiration.HasValue)
+            if (_absoluteExpiration.HasValue)
             {
-                if (!parent.AbsoluteExpiration.HasValue || AbsoluteExpiration < parent.AbsoluteExpiration)
+                if (!parent._absoluteExpiration.HasValue || _absoluteExpiration < parent._absoluteExpiration)
                 {
-                    parent.AbsoluteExpiration = AbsoluteExpiration;
+                    parent._absoluteExpiration = _absoluteExpiration;
                 }
             }
-        }
-
-        private void Set(State option, bool value)
-        {
-            int before, after;
-
-            do
-            {
-                before = _state;
-                after = value ? (_state | (int)option) : (_state & ~(int)option);
-            } while (Interlocked.CompareExchange(ref _state, after, before) != before);
-        }
-
-        [Flags]
-        private enum State
-        {
-            Default = 0,
-            IsValueSet = 1 << 0,
-            IsExpired = 1 << 1,
-            IsDisposed = 1 << 2,
         }
     }
 }

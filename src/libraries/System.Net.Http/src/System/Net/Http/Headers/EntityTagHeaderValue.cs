@@ -8,7 +8,9 @@ namespace System.Net.Http.Headers
 {
     public class EntityTagHeaderValue : ICloneable
     {
-        private string _tag;
+        private static EntityTagHeaderValue? s_any;
+
+        private string _tag = null!;
         private bool _isWeak;
 
         public string Tag
@@ -21,11 +23,18 @@ namespace System.Net.Http.Headers
             get { return _isWeak; }
         }
 
-        public static EntityTagHeaderValue Any { get; } = new EntityTagHeaderValue();
-
-        private EntityTagHeaderValue()
+        public static EntityTagHeaderValue Any
         {
-            _tag = "*";
+            get
+            {
+                if (s_any == null)
+                {
+                    s_any = new EntityTagHeaderValue();
+                    s_any._tag = "*";
+                    s_any._isWeak = false;
+                }
+                return s_any;
+            }
         }
 
         public EntityTagHeaderValue(string tag)
@@ -58,6 +67,10 @@ namespace System.Net.Http.Headers
 
             _tag = source._tag;
             _isWeak = source._isWeak;
+        }
+
+        private EntityTagHeaderValue()
+        {
         }
 
         public override string ToString()
@@ -175,6 +188,16 @@ namespace System.Net.Http.Headers
             return current - startIndex;
         }
 
-        object ICloneable.Clone() => ReferenceEquals(this, Any) ? Any : new EntityTagHeaderValue(this);
+        object ICloneable.Clone()
+        {
+            if (this == s_any)
+            {
+                return s_any;
+            }
+            else
+            {
+                return new EntityTagHeaderValue(this);
+            }
+        }
     }
 }

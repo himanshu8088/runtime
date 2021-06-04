@@ -101,5 +101,5 @@ dotnet build System.Net.ServicePoint.Tests.csproj -f netcoreapp2.0 /t:test /p:Ou
 Will run the test using the following pivot values:
 * Architecture: AnyCPU
 * Flavor: Debug
-* OS: windows
+* OS: Windows_NT
 * Target: netstandard2.0

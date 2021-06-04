@@ -34,7 +34,7 @@ namespace System.Net.Quic.Implementations.MsQuic
         private QuicListenerOptions _options;
         private volatile bool _disposed;
         private IPEndPoint _listenEndPoint;
-        private bool _started;
+
         private readonly Channel<MsQuicConnection> _acceptConnectionQueue;
 
         internal MsQuicListener(QuicListenerOptions options)
@@ -120,13 +120,6 @@ namespace System.Net.Quic.Implementations.MsQuic
         {
             ThrowIfDisposed();
 
-            // protect against double starts.
-            if (_started)
-            {
-                throw new QuicException("Cannot start Listener multiple times");
-            }
-
-            _started = true;
             SetCallbackHandler();
 
             SOCKADDR_INET address = MsQuicAddressHelpers.IPEndPointToINet(_listenEndPoint);
@@ -209,7 +202,7 @@ namespace System.Net.Quic.Implementations.MsQuic
 
         internal void SetCallbackHandler()
         {
-            Debug.Assert(!_handle.IsAllocated, "listener allocated");
+            Debug.Assert(!_handle.IsAllocated);
             _handle = GCHandle.Alloc(this);
 
             MsQuicApi.Api.SetCallbackHandlerDelegate(

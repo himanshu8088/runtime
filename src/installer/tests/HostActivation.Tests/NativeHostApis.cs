@@ -269,15 +269,15 @@ namespace Microsoft.DotNet.CoreSetup.Test.HostActivation
                 RepoDirectories = new RepoDirectoriesProvider();
 
                 HostApiInvokerAppFixture = new TestProjectFixture("HostApiInvokerApp", RepoDirectories)
-                    .EnsureRestored()
+                    .EnsureRestored(RepoDirectories.CorehostPackages)
                     .BuildProject();
 
                 PortableAppFixture = new TestProjectFixture("PortableApp", RepoDirectories)
-                    .EnsureRestored()
+                    .EnsureRestored(RepoDirectories.CorehostPackages)
                     .PublishProject();
 
                 PortableAppWithExceptionFixture = new TestProjectFixture("PortableAppWithException", RepoDirectories)
-                    .EnsureRestored()
+                    .EnsureRestored(RepoDirectories.CorehostPackages)
                     .PublishProject();
 
                 if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))

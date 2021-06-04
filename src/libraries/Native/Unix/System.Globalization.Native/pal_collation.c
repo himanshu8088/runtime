@@ -59,13 +59,12 @@ struct SortHandle
     SearchIteratorNode searchIteratorList[CompareOptionsMask + 1];
 };
 
+typedef struct { UChar* items; size_t size; } UCharList;
+
 // Hiragana character range
 static const UChar hiraganaStart = 0x3041;
 static const UChar hiraganaEnd = 0x309e;
 static const UChar hiraganaToKatakanaOffset = 0x30a1 - 0x3041;
-// Length of the fullwidth characters from 'A' to 'Z'
-// We'll use it to map the casing of the full width 'A' to 'Z' characters
-static const int32_t FullWidthAlphabetRangeLength = 0xFF3A - 0xFF21 + 1;
 
 // Mapping between half- and fullwidth characters.
 // LowerChars are the characters that should sort lower than HigherChars
@@ -143,101 +142,99 @@ static int IsHalfFullHigherSymbol(UChar character)
 }
 
 /*
-Fill custom collation rules for ignoreKana cases.
+Gets a string of custom collation rules, if necessary.
 
 Since the CompareOptions flags don't map 1:1 with ICU default functionality, we need to fall back to using
 custom rules in order to support IgnoreKanaType and IgnoreWidth CompareOptions correctly.
 */
-static void FillIgnoreKanaRules(UChar* completeRules, int32_t* fillIndex, int32_t completeRulesLength, int32_t isIgnoreKanaType)
+static UCharList* GetCustomRules(int32_t options, UColAttributeValue strength, int isIgnoreSymbols)
 {
-    UChar compareChar = isIgnoreKanaType ? '=' : '<';
+    int isIgnoreKanaType = (options & CompareOptionsIgnoreKanaType) == CompareOptionsIgnoreKanaType;
+    int isIgnoreWidth = (options & CompareOptionsIgnoreWidth) == CompareOptionsIgnoreWidth;
 
-    assert((*fillIndex) + (4 * (hiraganaEnd - hiraganaStart + 1)) <= completeRulesLength);
-    if ((*fillIndex) + (4 * (hiraganaEnd - hiraganaStart + 1)) > completeRulesLength) // check the allocated the size
+    // kana differs at the tertiary level
+    int needsIgnoreKanaTypeCustomRule = isIgnoreKanaType && strength >= UCOL_TERTIARY;
+    int needsNotIgnoreKanaTypeCustomRule = !isIgnoreKanaType && strength < UCOL_TERTIARY;
+
+    // character width differs at the tertiary level
+    int needsIgnoreWidthCustomRule = isIgnoreWidth && strength >= UCOL_TERTIARY;
+    int needsNotIgnoreWidthCustomRule = !isIgnoreWidth && strength < UCOL_TERTIARY;
+
+    if (!(needsIgnoreKanaTypeCustomRule || needsNotIgnoreKanaTypeCustomRule || needsIgnoreWidthCustomRule || needsNotIgnoreWidthCustomRule))
+        return NULL;
+
+    UCharList* customRules = (UCharList*)malloc(sizeof(UCharList));
+    if (customRules == NULL)
     {
-        return;
+        return NULL;
     }
 
-    for (UChar hiraganaChar = hiraganaStart; hiraganaChar <= hiraganaEnd; hiraganaChar++)
+    // If we need to create customRules, the KanaType custom rule will be 88 kana characters * 4 = 352 chars long
+    // and the Width custom rule will be at most 212 halfwidth characters * 5 = 1060 chars long.
+    int capacity =
+        ((needsIgnoreKanaTypeCustomRule || needsNotIgnoreKanaTypeCustomRule) ? 4 * (hiraganaEnd - hiraganaStart + 1) : 0) +
+        ((needsIgnoreWidthCustomRule || needsNotIgnoreWidthCustomRule) ? 5 * g_HalfFullCharsLength : 0);
+
+    UChar* items;
+    customRules->items = items = (UChar*)malloc((size_t)capacity * sizeof(UChar));
+    if (customRules->items == NULL)
     {
-        // Hiragana is the range 3041 to 3096 & 309D & 309E
-        if (hiraganaChar <= 0x3096 || hiraganaChar >= 0x309D) // characters between 3096 and 309D are not mapped to katakana
+        free(customRules);
+        return NULL;
+    }
+
+    if (needsIgnoreKanaTypeCustomRule || needsNotIgnoreKanaTypeCustomRule)
+    {
+        UChar compareChar = needsIgnoreKanaTypeCustomRule ? '=' : '<';
+
+        for (UChar hiraganaChar = hiraganaStart; hiraganaChar <= hiraganaEnd; hiraganaChar++)
         {
-            completeRules[*fillIndex] = '&';
-            completeRules[(*fillIndex) + 1] = hiraganaChar;
-            completeRules[(*fillIndex) + 2] = compareChar;
-            completeRules[(*fillIndex) + 3] = hiraganaChar + hiraganaToKatakanaOffset;
-            (*fillIndex) += 4;
-        }
-    }
-}
-
-/*
-Fill custom collation rules for ignoreWidth cases.
-
-Since the CompareOptions flags don't map 1:1 with ICU default functionality, we need to fall back to using
-custom rules in order to support IgnoreKanaType and IgnoreWidth CompareOptions correctly.
-*/
-static void FillIgnoreWidthRules(UChar* completeRules, int32_t* fillIndex, int32_t completeRulesLength, int32_t isIgnoreWidth, int32_t isIgnoreCase, int32_t isIgnoreSymbols)
-{
-    UChar compareChar = isIgnoreWidth ? '=' : '<';
-
-    UChar lowerChar;
-    UChar higherChar;
-    int needsEscape;
-
-    assert((*fillIndex) + (5 * g_HalfFullCharsLength) <= completeRulesLength);
-    if ((*fillIndex) + (5 * g_HalfFullCharsLength) > completeRulesLength)
-    {
-        return;
-    }
-
-    for (int i = 0; i < g_HalfFullCharsLength; i++)
-    {
-        lowerChar = g_HalfFullLowerChars[i];
-        higherChar = g_HalfFullHigherChars[i];
-        // the lower chars need to be checked for escaping since they contain ASCII punctuation
-        needsEscape = NeedsEscape(lowerChar);
-
-        // when isIgnoreSymbols is true and we are not ignoring width, check to see if
-        // this character is a symbol, and if so skip it
-        if (!(isIgnoreSymbols && (!isIgnoreWidth) && (needsEscape || IsHalfFullHigherSymbol(higherChar))))
-        {
-            completeRules[*fillIndex] = '&';
-            (*fillIndex)++;
-
-            if (needsEscape)
+            // Hiragana is the range 3041 to 3096 & 309D & 309E
+            if (hiraganaChar <= 0x3096 || hiraganaChar >= 0x309D) // characters between 3096 and 309D are not mapped to katakana
             {
-                completeRules[*fillIndex] = '\\';
-                (*fillIndex)++;
+                assert(items - customRules->items <= capacity - 4);
+                *(items++) = '&';
+                *(items++) = hiraganaChar;
+                *(items++) = compareChar;
+                *(items++) = hiraganaChar + hiraganaToKatakanaOffset;
             }
-
-            completeRules[*fillIndex]       = lowerChar;
-            completeRules[(*fillIndex) + 1] = compareChar;
-            completeRules[(*fillIndex) + 2] = higherChar;
-            (*fillIndex) += 3;
         }
     }
 
-    // When we have isIgnoreWidth is false, we sort the normal width latin alphabet characters before the full width latin alphabet characters
-    //              e.g. `a` < `ａ` (\uFF41)
-    // This break the casing of the full width latin alphabet characters.
-    //              e.g. `ａ` (\uFF41) == `Ａ` (\uFF21).
-    // we are fixing back this case mapping here.
-    if (isIgnoreCase && (!isIgnoreWidth))
+    if (needsIgnoreWidthCustomRule || needsNotIgnoreWidthCustomRule)
     {
-        assert((*fillIndex) + (FullWidthAlphabetRangeLength * 4) <= completeRulesLength);
-        const int UpperCaseToLowerCaseOffset = 0xFF41 - 0xFF21;
+        UChar compareChar = needsIgnoreWidthCustomRule ? '=' : '<';
 
-        for (UChar ch = 0xFF21; ch <= 0xFF3A; ch++)
+        UChar lowerChar;
+        UChar higherChar;
+        int needsEscape;
+        for (int i = 0; i < g_HalfFullCharsLength; i++)
         {
-            completeRules[*fillIndex] = '&';
-            completeRules[(*fillIndex) + 1] = ch + UpperCaseToLowerCaseOffset;
-            completeRules[(*fillIndex) + 2] = '=';
-            completeRules[(*fillIndex) + 3] = ch;
-            (*fillIndex) += 4;
+            lowerChar = g_HalfFullLowerChars[i];
+            higherChar = g_HalfFullHigherChars[i];
+            // the lower chars need to be checked for escaping since they contain ASCII punctuation
+            needsEscape = NeedsEscape(lowerChar);
+
+            // when isIgnoreSymbols is true and we are not ignoring width, check to see if
+            // this character is a symbol, and if so skip it
+            if (!(isIgnoreSymbols && needsNotIgnoreWidthCustomRule && (needsEscape || IsHalfFullHigherSymbol(higherChar))))
+            {
+                assert(items - customRules->items <= capacity - 5);
+                *(items++) = '&';
+                if (needsEscape)
+                {
+                    *(items++) = '\\';
+                }
+                *(items++) = lowerChar;
+                *(items++) = compareChar;
+                *(items++) = higherChar;
+            }
         }
     }
+
+    customRules->size = (size_t)(items - customRules->items);
+
+    return customRules;
 }
 
 /*
@@ -250,11 +247,9 @@ static UCollator* CloneCollatorWithOptions(const UCollator* pCollator, int32_t o
 {
     UColAttributeValue strength = ucol_getStrength(pCollator);
 
-    int32_t isIgnoreCase        = (options & CompareOptionsIgnoreCase)     == CompareOptionsIgnoreCase;
-    int32_t isIgnoreNonSpace    = (options & CompareOptionsIgnoreNonSpace) == CompareOptionsIgnoreNonSpace;
-    int32_t isIgnoreSymbols     = (options & CompareOptionsIgnoreSymbols)  == CompareOptionsIgnoreSymbols;
-    int32_t isIgnoreKanaType    = (options & CompareOptionsIgnoreKanaType) == CompareOptionsIgnoreKanaType;
-    int32_t isIgnoreWidth       = (options & CompareOptionsIgnoreWidth)    == CompareOptionsIgnoreWidth;
+    int isIgnoreCase = (options & CompareOptionsIgnoreCase) == CompareOptionsIgnoreCase;
+    int isIgnoreNonSpace = (options & CompareOptionsIgnoreNonSpace) == CompareOptionsIgnoreNonSpace;
+    int isIgnoreSymbols = (options & CompareOptionsIgnoreSymbols) == CompareOptionsIgnoreSymbols;
 
     if (isIgnoreCase)
     {
@@ -267,74 +262,34 @@ static UCollator* CloneCollatorWithOptions(const UCollator* pCollator, int32_t o
     }
 
     UCollator* pClonedCollator;
-
-    // IgnoreWidth - it would be easy to IgnoreWidth by just setting Strength <= Secondary.
-    // For any strength under that, the width of the characters will be ignored.
-    // For strength above that, the width of the characters will be used in differentiation.
-    //      a.	However, this doesn’t play nice with IgnoreCase, since these Strength levels are overloaded.
-    //      b.	So the plan to support IgnoreWidth is to use customized rules.
-    //          i.	Since the character width is differentiated at “Tertiary” strength, we only need to use custom rules in specific cases.
-    //          ii.	If (IgnoreWidth == true && Strength > “Secondary”)
-    //              1.	Build up a custom rule set for each half-width character and say that it is equal to the corresponding full-width character.
-    //                  a.	ex:  “0x30F2 = 0xFF66 & 0x30F3 = 0xFF9D & …”
-    //          iii.	If (IgnoreWidth == false && Strength <= “Secondary”)
-    //              1.	Build up a custom rule set saying that the half-width and full-width characters have a primary level difference (which will cause it always to be unequal)
-    //                  a.	Ex. “0x30F2 < 0xFF66 & 0x30F3 < 0xFF9D & …”
-    //  IgnoreKanaType – this works the same way as IgnoreWidth, it uses the set of Hiragana and Katakana characters instead of half-width vs full-width characters to build the rules.
-    int32_t applyIgnoreKanaTypeCustomRule  = isIgnoreKanaType ^ (strength < UCOL_TERTIARY); // kana differs at the tertiary level
-    int32_t applyIgnoreWidthTypeCustomRule = isIgnoreWidth    ^ (strength < UCOL_TERTIARY); // character width differs at the tertiary level
-
-    int32_t customRuleLength = 0;
-    if (applyIgnoreKanaTypeCustomRule || applyIgnoreWidthTypeCustomRule)
-    {
-        // If we need to create customRules, the KanaType custom rule will be 88 kana characters * 4 = 352 chars long
-        // and the Width custom rule will be at most 212 halfwidth characters * 5 = 1060 chars long.
-        customRuleLength = (applyIgnoreKanaTypeCustomRule ? 4 * (hiraganaEnd - hiraganaStart + 1) : 0) +
-                            (applyIgnoreWidthTypeCustomRule ? ((5 * g_HalfFullCharsLength) + (isIgnoreCase ? 4 * FullWidthAlphabetRangeLength : 0)) : 0) +
-                            1; // Adding extra terminator rule at the end to force ICU apply last actual entered rule, otherwise last actual rule get ignored.
-    }
-
-    if (customRuleLength == 0)
+    UCharList* customRules = GetCustomRules(options, strength, isIgnoreSymbols);
+    if (customRules == NULL || customRules->size == 0)
     {
         pClonedCollator = ucol_safeClone(pCollator, NULL, NULL, pErr);
     }
     else
     {
-        int32_t rulesLength;
-        const UChar* localeRules = ucol_getRules(pCollator, &rulesLength);
-        int32_t completeRulesLength = rulesLength + customRuleLength + 1;
+        int32_t customRuleLength = (int32_t)customRules->size;
+
+        int32_t localeRulesLength;
+        const UChar* localeRules = ucol_getRules(pCollator, &localeRulesLength);
+        int32_t completeRulesLength = localeRulesLength + customRuleLength + 1;
 
         UChar* completeRules = (UChar*)calloc((size_t)completeRulesLength, sizeof(UChar));
 
-        for (int i = 0; i < rulesLength; i++)
+        for (int i = 0; i < localeRulesLength; i++)
         {
             completeRules[i] = localeRules[i];
         }
-
-        if (applyIgnoreKanaTypeCustomRule)
+        for (int i = 0; i < customRuleLength; i++)
         {
-            FillIgnoreKanaRules(completeRules, &rulesLength, completeRulesLength, isIgnoreKanaType);
+            completeRules[localeRulesLength + i] = customRules->items[i];
         }
 
-        assert(rulesLength <= completeRulesLength);
-
-        if (applyIgnoreWidthTypeCustomRule)
-        {
-            FillIgnoreWidthRules(completeRules, &rulesLength, completeRulesLength, isIgnoreWidth, isIgnoreCase, isIgnoreSymbols);
-        }
-
-        assert(rulesLength + 4 <= completeRulesLength);
-
-        // Adding extra terminator rule at the end to force ICU apply last actual entered rule, otherwise last actual rule get ignored.
-        completeRules[rulesLength] = '&';
-        completeRules[rulesLength + 1] = 'a';
-        completeRules[rulesLength + 2] = '=';
-        completeRules[rulesLength + 3] = 'a';
-        rulesLength += 4;
-
-        pClonedCollator = ucol_openRules(completeRules, rulesLength, UCOL_DEFAULT, strength, NULL, pErr);
+        pClonedCollator = ucol_openRules(completeRules, completeRulesLength, UCOL_DEFAULT, strength, NULL, pErr);
         free(completeRules);
     }
+    free(customRules);
 
     if (isIgnoreSymbols)
     {

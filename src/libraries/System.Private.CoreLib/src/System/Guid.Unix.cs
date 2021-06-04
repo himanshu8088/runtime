@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Internal.Runtime.CompilerServices;
-
 namespace System
 {
     public partial struct Guid
@@ -28,9 +26,9 @@ namespace System
             unchecked
             {
                 // time_hi_and_version
-                Unsafe.AsRef(in g._c) = (short)((g._c & ~VersionMask) | RandomGuidVersion);
+                g._c = (short)((g._c & ~VersionMask) | RandomGuidVersion);
                 // clock_seq_hi_and_reserved
-                Unsafe.AsRef(in g._d) = (byte)((g._d & ~ClockSeqHiAndReservedMask) | ClockSeqHiAndReservedValue);
+                g._d = (byte)((g._d & ~ClockSeqHiAndReservedMask) | ClockSeqHiAndReservedValue);
             }
 
             return g;

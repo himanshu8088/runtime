@@ -119,9 +119,7 @@ namespace System.Text
         {
             // Validate input
             if (s == null)
-            {
-                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.s);
-            }
+                throw new ArgumentNullException(nameof(s));
 
             fixed (char* pChars = s)
                 return GetByteCount(pChars, s.Length, null);

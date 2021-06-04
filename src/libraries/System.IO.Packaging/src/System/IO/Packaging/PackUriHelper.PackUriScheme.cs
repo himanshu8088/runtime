@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Text;
+using System.Linq;
 
 namespace System.IO.Packaging
 {
@@ -285,7 +286,7 @@ namespace System.IO.Packaging
             // This is currently enforced by the order of characters in the s_specialCharacterChars array
             foreach (char c in s_specialCharacterChars)
             {
-                if (path.IndexOf(c) != -1)
+                if (path.Contains(c))
                 {
                     path = path.Replace(c.ToString(), Uri.HexEscape(c));
                 }

@@ -262,9 +262,10 @@ namespace System
                     {
                         throw new InvalidOperationException(SR.IO_TermInfoInvalid);
                     }
+                    int fileLen = (int)termInfoLength;
 
-                    byte[] data = new byte[(int)termInfoLength];
-                    if (ConsolePal.Read(fd, data) != data.Length)
+                    byte[] data = new byte[fileLen];
+                    if (ConsolePal.Read(fd, data, 0, fileLen) != fileLen)
                     {
                         throw new InvalidOperationException(SR.IO_TermInfoInvalid);
                     }

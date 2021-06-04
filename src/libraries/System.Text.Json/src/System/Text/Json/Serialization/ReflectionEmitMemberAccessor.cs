@@ -5,6 +5,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -64,7 +65,7 @@ namespace System.Text.Json.Serialization
 
             Debug.Assert(type != null);
             Debug.Assert(!type.IsAbstract);
-            Debug.Assert(Array.IndexOf(type.GetConstructors(BindingFlags.Public | BindingFlags.Instance), constructor) >= 0);
+            Debug.Assert(type.GetConstructors(BindingFlags.Public | BindingFlags.Instance).Contains(constructor));
 
             ParameterInfo[] parameters = constructor.GetParameters();
             int parameterCount = parameters.Length;
@@ -110,7 +111,7 @@ namespace System.Text.Json.Serialization
 
             Debug.Assert(type != null);
             Debug.Assert(!type.IsAbstract);
-            Debug.Assert(Array.IndexOf(type.GetConstructors(BindingFlags.Public | BindingFlags.Instance), constructor) >= 0);
+            Debug.Assert(type.GetConstructors(BindingFlags.Public | BindingFlags.Instance).Contains(constructor));
 
             ParameterInfo[] parameters = constructor.GetParameters();
             int parameterCount = parameters.Length;

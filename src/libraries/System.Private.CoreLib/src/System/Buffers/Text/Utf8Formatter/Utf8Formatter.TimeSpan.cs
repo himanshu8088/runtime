@@ -70,8 +70,7 @@ namespace System.Buffers.Text
                     }
                 }
 
-                ulong fraction64;
-                (totalSecondsRemaining, fraction64) = Math.DivRem((ulong)Math.Abs(value.Ticks), TimeSpan.TicksPerSecond);
+                totalSecondsRemaining = FormattingHelpers.DivMod((ulong)Math.Abs(value.Ticks), TimeSpan.TicksPerSecond, out ulong fraction64);
                 fraction = (uint)fraction64;
             }
 
@@ -115,7 +114,7 @@ namespace System.Buffers.Text
             if (totalSecondsRemaining > 0)
             {
                 // Only compute minutes if the TimeSpan has an absolute value of >= 1 minute.
-                (totalMinutesRemaining, seconds) = Math.DivRem(totalSecondsRemaining, 60 /* seconds per minute */);
+                totalMinutesRemaining = FormattingHelpers.DivMod(totalSecondsRemaining, 60 /* seconds per minute */, out seconds);
             }
 
             Debug.Assert(seconds < 60);
@@ -125,7 +124,7 @@ namespace System.Buffers.Text
             if (totalMinutesRemaining > 0)
             {
                 // Only compute hours if the TimeSpan has an absolute value of >= 1 hour.
-                (totalHoursRemaining, minutes) = Math.DivRem(totalMinutesRemaining, 60 /* minutes per hour */);
+                totalHoursRemaining = FormattingHelpers.DivMod(totalMinutesRemaining, 60 /* minutes per hour */, out minutes);
             }
 
             Debug.Assert(minutes < 60);
@@ -138,7 +137,7 @@ namespace System.Buffers.Text
             if (totalHoursRemaining > 0)
             {
                 // Only compute days if the TimeSpan has an absolute value of >= 1 day.
-                (days, hours) = Math.DivRem((uint)totalHoursRemaining, 24 /* hours per day */);
+                days = FormattingHelpers.DivMod((uint)totalHoursRemaining, 24 /* hours per day */, out hours);
             }
 
             Debug.Assert(hours < 24);

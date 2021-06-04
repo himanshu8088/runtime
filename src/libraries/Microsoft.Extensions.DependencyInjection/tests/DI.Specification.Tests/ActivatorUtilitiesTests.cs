@@ -141,7 +141,7 @@ namespace Microsoft.Extensions.DependencyInjection.Specification
 
         public static IEnumerable<object[]> TypesWithNonPublicConstructorData =>
             CreateInstanceFuncs.Zip(
-                    new[] { typeof(ClassWithPrivateCtor), typeof(ClassWithInternalConstructor), typeof(ClassWithProtectedConstructor), typeof(StaticConstructorClass) },
+                    new[] { typeof(ClassWithPrivateCtor), typeof(ClassWithInternalConstructor), typeof(ClassWithProtectedConstructor) },
                     (a, b) => new object[] { a[0], b });
 
         [Theory]
@@ -400,13 +400,6 @@ namespace Microsoft.Extensions.DependencyInjection.Specification
             {
                 throw new InvalidOperationException("some error");
             }
-        }
-
-        class StaticConstructorClass
-        {
-            static StaticConstructorClass() { }
-
-            private StaticConstructorClass() { }
         }
     }
 }

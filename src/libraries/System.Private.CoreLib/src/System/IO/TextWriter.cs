@@ -538,19 +538,27 @@ namespace System.IO
         }
 
         #region Task based Async APIs
-        public virtual Task WriteAsync(char value) =>
-            Task.Factory.StartNew(static state =>
+        public virtual Task WriteAsync(char value)
+        {
+            var tuple = new Tuple<TextWriter, char>(this, value);
+            return Task.Factory.StartNew(static state =>
             {
-                var t = (TupleSlim<TextWriter, char>)state!;
+                var t = (Tuple<TextWriter, char>)state!;
                 t.Item1.Write(t.Item2);
-            }, new TupleSlim<TextWriter, char>(this, value), CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            },
+            tuple, CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
 
-        public virtual Task WriteAsync(string? value) =>
-            Task.Factory.StartNew(static state =>
+        public virtual Task WriteAsync(string? value)
+        {
+            var tuple = new Tuple<TextWriter, string?>(this, value);
+            return Task.Factory.StartNew(static state =>
             {
-                var t = (TupleSlim<TextWriter, string?>)state!;
+                var t = (Tuple<TextWriter, string?>)state!;
                 t.Item1.Write(t.Item2);
-            }, new TupleSlim<TextWriter, string?>(this, value), CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            },
+            tuple, CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
 
         /// <summary>
         /// Equivalent to WriteAsync(stringBuilder.ToString()) however it uses the
@@ -584,12 +592,16 @@ namespace System.IO
             return WriteAsync(buffer, 0, buffer.Length);
         }
 
-        public virtual Task WriteAsync(char[] buffer, int index, int count) =>
-            Task.Factory.StartNew(static state =>
+        public virtual Task WriteAsync(char[] buffer, int index, int count)
+        {
+            var tuple = new Tuple<TextWriter, char[], int, int>(this, buffer, index, count);
+            return Task.Factory.StartNew(static state =>
             {
-                var t = (TupleSlim<TextWriter, char[], int, int>)state!;
+                var t = (Tuple<TextWriter, char[], int, int>)state!;
                 t.Item1.Write(t.Item2, t.Item3, t.Item4);
-            }, new TupleSlim<TextWriter, char[], int, int>(this, buffer, index, count), CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            },
+            tuple, CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
 
         public virtual Task WriteAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = default) =>
             cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) :
@@ -597,23 +609,31 @@ namespace System.IO
                 WriteAsync(array.Array!, array.Offset, array.Count) :
                 Task.Factory.StartNew(static state =>
                 {
-                    var t = (TupleSlim<TextWriter, ReadOnlyMemory<char>>)state!;
+                    var t = (Tuple<TextWriter, ReadOnlyMemory<char>>)state!;
                     t.Item1.Write(t.Item2.Span);
-                }, new TupleSlim<TextWriter, ReadOnlyMemory<char>>(this, buffer), cancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+                }, Tuple.Create(this, buffer), cancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
 
-        public virtual Task WriteLineAsync(char value) =>
-            Task.Factory.StartNew(static state =>
+        public virtual Task WriteLineAsync(char value)
+        {
+            var tuple = new Tuple<TextWriter, char>(this, value);
+            return Task.Factory.StartNew(static state =>
             {
-                var t = (TupleSlim<TextWriter, char>)state!;
+                var t = (Tuple<TextWriter, char>)state!;
                 t.Item1.WriteLine(t.Item2);
-            }, new TupleSlim<TextWriter, char>(this, value), CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            },
+            tuple, CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
 
-        public virtual Task WriteLineAsync(string? value) =>
-            Task.Factory.StartNew(static state =>
+        public virtual Task WriteLineAsync(string? value)
+        {
+            var tuple = new Tuple<TextWriter, string?>(this, value);
+            return Task.Factory.StartNew(static state =>
             {
-                var t = (TupleSlim<TextWriter, string?>)state!;
+                var t = (Tuple<TextWriter, string?>)state!;
                 t.Item1.WriteLine(t.Item2);
-            }, new TupleSlim<TextWriter, string?>(this, value), CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            },
+            tuple, CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
 
         /// <summary>
         /// Equivalent to WriteLineAsync(stringBuilder.ToString()) however it uses the
@@ -648,12 +668,16 @@ namespace System.IO
             return WriteLineAsync(buffer, 0, buffer.Length);
         }
 
-        public virtual Task WriteLineAsync(char[] buffer, int index, int count) =>
-            Task.Factory.StartNew(static state =>
+        public virtual Task WriteLineAsync(char[] buffer, int index, int count)
+        {
+            var tuple = new Tuple<TextWriter, char[], int, int>(this, buffer, index, count);
+            return Task.Factory.StartNew(static state =>
             {
-                var t = (TupleSlim<TextWriter, char[], int, int>)state!;
+                var t = (Tuple<TextWriter, char[], int, int>)state!;
                 t.Item1.WriteLine(t.Item2, t.Item3, t.Item4);
-            }, new TupleSlim<TextWriter, char[], int, int>(this, buffer, index, count), CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+            },
+            tuple, CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+        }
 
         public virtual Task WriteLineAsync(ReadOnlyMemory<char> buffer, CancellationToken cancellationToken = default) =>
             cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) :
@@ -661,9 +685,9 @@ namespace System.IO
                 WriteLineAsync(array.Array!, array.Offset, array.Count) :
                 Task.Factory.StartNew(static state =>
                 {
-                    var t = (TupleSlim<TextWriter, ReadOnlyMemory<char>>)state!;
+                    var t = (Tuple<TextWriter, ReadOnlyMemory<char>>)state!;
                     t.Item1.WriteLine(t.Item2.Span);
-                }, new TupleSlim<TextWriter, ReadOnlyMemory<char>>(this, buffer), cancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
+                }, Tuple.Create(this, buffer), cancellationToken, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default);
 
         public virtual Task WriteLineAsync()
         {
@@ -679,11 +703,9 @@ namespace System.IO
 
         private sealed class NullTextWriter : TextWriter
         {
-            internal NullTextWriter()
+            internal NullTextWriter() : base(CultureInfo.InvariantCulture)
             {
             }
-
-            public override IFormatProvider FormatProvider => CultureInfo.InvariantCulture;
 
             public override Encoding Encoding => Encoding.Unicode;
 
@@ -726,7 +748,7 @@ namespace System.IO
         {
             private readonly TextWriter _out;
 
-            internal SyncTextWriter(TextWriter t)
+            internal SyncTextWriter(TextWriter t) : base(t.FormatProvider)
             {
                 _out = t;
             }

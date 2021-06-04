@@ -6,7 +6,6 @@ using System;
 using System.Diagnostics;
 #endif
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.Versioning;
 using System.Threading;
 
 #if ES_BUILD_STANDALONE
@@ -24,7 +23,6 @@ namespace System.Diagnostics.Tracing
     /// See https://github.com/dotnet/runtime/blob/master/src/libraries/System.Diagnostics.Tracing/tests/BasicEventSourceTest/TestEventCounter.cs
     /// which shows tests, which are also useful in seeing actual use.
     /// </summary>
-    [UnsupportedOSPlatform("browser")]
     public partial class EventCounter : DiagnosticCounter
     {
         /// <summary>

@@ -15,7 +15,6 @@ using System.Diagnostics;
 using System.Diagnostics.Tracing;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
-using System.Runtime.Versioning;
 using Internal.Runtime.CompilerServices;
 
 namespace System.Threading.Tasks
@@ -193,15 +192,12 @@ namespace System.Threading.Tasks
         {
             Debug.Assert(task != null, "Null Task objects can't be added to the ActiveTasks collection");
 
-            Dictionary<int, Task> activeTasks =
-                Volatile.Read(ref s_currentActiveTasks) ??
-                Interlocked.CompareExchange(ref s_currentActiveTasks, new Dictionary<int, Task>(), null) ??
-                s_currentActiveTasks;
+            LazyInitializer.EnsureInitialized(ref s_currentActiveTasks, () => new Dictionary<int, Task>());
 
             int taskId = task.Id;
-            lock (activeTasks)
+            lock (s_currentActiveTasks)
             {
-                activeTasks[taskId] = task;
+                s_currentActiveTasks[taskId] = task;
             }
             // always return true to keep signature as bool for backwards compatibility
             return true;
@@ -209,14 +205,13 @@ namespace System.Threading.Tasks
 
         internal static void RemoveFromActiveTasks(Task task)
         {
-            Dictionary<int, Task>? activeTasks = s_currentActiveTasks;
-            if (activeTasks is null)
+            if (s_currentActiveTasks == null)
                 return;
 
             int taskId = task.Id;
-            lock (activeTasks)
+            lock (s_currentActiveTasks)
             {
-                activeTasks.Remove(taskId);
+                s_currentActiveTasks.Remove(taskId);
             }
         }
 
@@ -635,14 +630,15 @@ namespace System.Threading.Tasks
                             // antecedent.RemoveCancellation(continuation) can be invoked.
                             ctr = cancellationToken.UnsafeRegister(static t =>
                             {
-                                var tuple = (TupleSlim<Task, Task, TaskContinuation>)t!;
+                                var tuple = (Tuple<Task, Task, TaskContinuation>)t!;
 
                                 Task targetTask = tuple.Item1;
                                 Task antecedentTask = tuple.Item2;
 
                                 antecedentTask.RemoveContinuation(tuple.Item3);
                                 targetTask.InternalCancel();
-                            }, new TupleSlim<Task, Task, TaskContinuation>(this, antecedent, continuation));
+                            },
+                            new Tuple<Task, Task, TaskContinuation>(this, antecedent, continuation));
                         }
 
                         props.m_cancellationRegistration = new StrongBox<CancellationTokenRegistration>(ctr);
@@ -1320,13 +1316,7 @@ namespace System.Threading.Tasks
         /// <returns>The initialized contingent properties object.</returns>
         internal ContingentProperties EnsureContingentPropertiesInitialized()
         {
-            return Volatile.Read(ref m_contingentProperties) ?? InitializeContingentProperties();
-
-            ContingentProperties InitializeContingentProperties()
-            {
-                Interlocked.CompareExchange(ref m_contingentProperties, new ContingentProperties(), null);
-                return m_contingentProperties;
-            }
+            return LazyInitializer.EnsureInitialized(ref m_contingentProperties, () => new ContingentProperties());
         }
 
         /// <summary>
@@ -1849,7 +1839,7 @@ namespace System.Threading.Tasks
         }
 
         /// <summary>Gets the exception dispatch infos once the task has faulted.</summary>
-        internal List<ExceptionDispatchInfo> GetExceptionDispatchInfos()
+        internal ReadOnlyCollection<ExceptionDispatchInfo> GetExceptionDispatchInfos()
         {
             Debug.Assert(IsFaulted && ExceptionRecorded, "Must only be used when the task has faulted with exceptions.");
             return m_contingentProperties!.m_exceptionsHolder!.GetExceptionDispatchInfos();
@@ -2855,7 +2845,6 @@ namespace System.Threading.Tasks
                 try
                 {
                     AddCompletionAction(mres, addBeforeOthers: true);
-#pragma warning disable CA1416 // Validate platform compatibility, issue: https://github.com/dotnet/runtime/issues/44622
                     if (infiniteWait)
                     {
                         returnValue = mres.Wait(Timeout.Infinite, cancellationToken);
@@ -2868,7 +2857,6 @@ namespace System.Threading.Tasks
                             returnValue = mres.Wait((int)(millisecondsTimeout - elapsedTimeTicks), cancellationToken);
                         }
                     }
-#pragma warning restore CA1416
                 }
                 finally
                 {
@@ -4450,7 +4438,6 @@ namespace System.Threading.Tasks
         /// At least one of the <see cref="Task"/> instances was canceled -or- an exception was thrown during
         /// the execution of at least one of the <see cref="Task"/> instances.
         /// </exception>
-        [UnsupportedOSPlatform("browser")]
         [MethodImpl(MethodImplOptions.NoOptimization)]  // this is needed for the parallel debugger
         public static void WaitAll(params Task[] tasks)
         {
@@ -4493,7 +4480,6 @@ namespace System.Threading.Tasks
         /// infinite time-out -or- timeout is greater than
         /// <see cref="int.MaxValue"/>.
         /// </exception>
-        [UnsupportedOSPlatform("browser")]
         [MethodImpl(MethodImplOptions.NoOptimization)]  // this is needed for the parallel debugger
         public static bool WaitAll(Task[] tasks, TimeSpan timeout)
         {
@@ -4532,7 +4518,6 @@ namespace System.Threading.Tasks
         /// <paramref name="millisecondsTimeout"/> is a negative number other than -1, which represents an
         /// infinite time-out.
         /// </exception>
-        [UnsupportedOSPlatform("browser")]
         [MethodImpl(MethodImplOptions.NoOptimization)]  // this is needed for the parallel debugger
         public static bool WaitAll(Task[] tasks, int millisecondsTimeout)
         {
@@ -4561,7 +4546,6 @@ namespace System.Threading.Tasks
         /// <exception cref="System.OperationCanceledException">
         /// The <paramref name="cancellationToken"/> was canceled.
         /// </exception>
-        [UnsupportedOSPlatform("browser")]
         [MethodImpl(MethodImplOptions.NoOptimization)]  // this is needed for the parallel debugger
         public static void WaitAll(Task[] tasks, CancellationToken cancellationToken)
         {
@@ -4602,14 +4586,12 @@ namespace System.Threading.Tasks
         /// <exception cref="System.OperationCanceledException">
         /// The <paramref name="cancellationToken"/> was canceled.
         /// </exception>
-        [UnsupportedOSPlatform("browser")]
         [MethodImpl(MethodImplOptions.NoOptimization)]  // this is needed for the parallel debugger
         public static bool WaitAll(Task[] tasks, int millisecondsTimeout, CancellationToken cancellationToken) =>
             WaitAllCore(tasks, millisecondsTimeout, cancellationToken);
 
         // Separated out to allow it to be optimized (caller is marked NoOptimization for VS parallel debugger
         // to be able to see the method on the stack and inspect arguments).
-        [UnsupportedOSPlatform("browser")]
         private static bool WaitAllCore(Task[] tasks, int millisecondsTimeout, CancellationToken cancellationToken)
         {
             if (tasks == null)
@@ -4748,7 +4730,6 @@ namespace System.Threading.Tasks
         /// <param name="millisecondsTimeout">The timeout.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>true if all of the tasks completed; otherwise, false.</returns>
-        [UnsupportedOSPlatform("browser")]
         private static bool WaitAllBlockingCore(List<Task> tasks, int millisecondsTimeout, CancellationToken cancellationToken)
         {
             Debug.Assert(tasks != null, "Expected a non-null list of tasks");
@@ -4826,8 +4807,8 @@ namespace System.Threading.Tasks
                 // this will make sure it won't throw again in the implicit wait
                 t.UpdateExceptionObservedStatus();
 
-                exceptions ??= new List<Exception>(ex.InnerExceptionCount);
-                exceptions.AddRange(ex.InternalInnerExceptions);
+                exceptions ??= new List<Exception>(ex.InnerExceptions.Count);
+                exceptions.AddRange(ex.InnerExceptions);
             }
         }
 
@@ -6676,9 +6657,9 @@ namespace System.Threading.Tasks
             ThreadPool.UnsafeQueueUserWorkItem(static state =>
             {
                 // InvokeCore(completingTask);
-                var tuple = (TupleSlim<UnwrapPromise<TResult>, Task>)state!;
+                var tuple = (Tuple<UnwrapPromise<TResult>, Task>)state!;
                 tuple.Item1.InvokeCore(tuple.Item2);
-            }, new TupleSlim<UnwrapPromise<TResult>, Task>(this, completingTask));
+            }, Tuple.Create<UnwrapPromise<TResult>, Task>(this, completingTask));
         }
 
         /// <summary>Processes the outer task once it's completed.</summary>
@@ -6728,7 +6709,7 @@ namespace System.Threading.Tasks
                     break;
 
                 case TaskStatus.Faulted:
-                    List<ExceptionDispatchInfo> edis = task.GetExceptionDispatchInfos();
+                    ReadOnlyCollection<ExceptionDispatchInfo> edis = task.GetExceptionDispatchInfos();
                     ExceptionDispatchInfo oceEdi;
                     if (lookForOce && edis.Count > 0 &&
                         (oceEdi = edis[0]) != null &&

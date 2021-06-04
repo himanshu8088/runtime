@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 
 namespace System.Text.Json.Serialization
@@ -32,7 +33,7 @@ namespace System.Text.Json.Serialization
             Type type = typeof(T);
 
             Debug.Assert(!type.IsAbstract);
-            Debug.Assert(Array.IndexOf(type.GetConstructors(BindingFlags.Public | BindingFlags.Instance), constructor) >= 0);
+            Debug.Assert(type.GetConstructors(BindingFlags.Public | BindingFlags.Instance).Contains(constructor));
 
             int parameterCount = constructor.GetParameters().Length;
 
@@ -72,7 +73,7 @@ namespace System.Text.Json.Serialization
             Type type = typeof(T);
 
             Debug.Assert(!type.IsAbstract);
-            Debug.Assert(Array.IndexOf(type.GetConstructors(BindingFlags.Public | BindingFlags.Instance), constructor) >= 0);
+            Debug.Assert(type.GetConstructors(BindingFlags.Public | BindingFlags.Instance).Contains(constructor));
 
             int parameterCount = constructor.GetParameters().Length;
 

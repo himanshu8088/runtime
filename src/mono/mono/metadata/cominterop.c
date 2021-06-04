@@ -150,6 +150,7 @@ GENERATE_GET_CLASS_WITH_CACHE (com_object, "System", "__ComObject")
 GENERATE_GET_CLASS_WITH_CACHE (variant,    "System", "Variant")
 
 static GENERATE_GET_CLASS_WITH_CACHE (interface_type_attribute, "System.Runtime.InteropServices", "InterfaceTypeAttribute")
+static GENERATE_GET_CLASS_WITH_CACHE (guid_attribute, "System.Runtime.InteropServices", "GuidAttribute")
 static GENERATE_GET_CLASS_WITH_CACHE (com_visible_attribute, "System.Runtime.InteropServices", "ComVisibleAttribute")
 static GENERATE_GET_CLASS_WITH_CACHE (com_default_interface_attribute, "System.Runtime.InteropServices", "ComDefaultInterfaceAttribute")
 static GENERATE_GET_CLASS_WITH_CACHE (class_interface_attribute, "System.Runtime.InteropServices", "ClassInterfaceAttribute")
@@ -486,13 +487,30 @@ cominterop_get_com_slot_for_method (MonoMethod* method, MonoError* error)
 	return slot + cominterop_get_com_slot_begin (ic);
 }
 
+static void
+cominterop_mono_string_to_guid (MonoString* string, guint8 *guid);
+
 static gboolean
 cominterop_class_guid (MonoClass* klass, guint8* guid)
 {
 	ERROR_DECL (error);
-	mono_metadata_get_class_guid (klass, guid, error);
-	mono_error_assert_ok (error); /*FIXME proper error handling*/
-	return TRUE;
+	MonoCustomAttrInfo *cinfo;
+
+	cinfo = mono_custom_attrs_from_class_checked (klass, error);
+	mono_error_assert_ok (error);
+	if (cinfo) {
+		MonoReflectionGuidAttribute *attr = (MonoReflectionGuidAttribute*)mono_custom_attrs_get_attr_checked (cinfo, mono_class_get_guid_attribute_class (), error);
+		mono_error_assert_ok (error); /*FIXME proper error handling*/
+
+		if (!attr)
+			return FALSE;
+		if (!cinfo->cached)
+			mono_custom_attrs_free (cinfo);
+
+		cominterop_mono_string_to_guid (attr->guid, guid);
+		return TRUE;
+	}
+	return FALSE;
 }
 
 static gboolean
@@ -534,8 +552,8 @@ cominterop_com_visible (MonoClass* klass)
 
 }
 
-gboolean
-mono_cominterop_method_com_visible (MonoMethod *method)
+static gboolean
+cominterop_method_com_visible (MonoMethod *method)
 {
 	ERROR_DECL (error);
 	MonoCustomAttrInfo *cinfo;
@@ -2139,7 +2157,7 @@ cominterop_class_method_is_visible (MonoMethod *method)
 	if (flags & METHOD_ATTRIBUTE_RT_SPECIAL_NAME)
 		return FALSE;
 
-	if (!mono_cominterop_method_com_visible (method))
+	if (!cominterop_method_com_visible (method))
 		return FALSE;
 
 	/* if the method is an override, ignore it and use the original definition */
@@ -2693,6 +2711,22 @@ cominterop_get_managed_wrapper_adjusted (MonoMethod *method)
 	g_free (mspecs);
 
 	return res;
+}
+
+/**
+ * cominterop_mono_string_to_guid:
+ *
+ * Converts the standard string representation of a GUID 
+ * to a 16 byte Microsoft GUID.
+ */
+static void
+cominterop_mono_string_to_guid (MonoString* string, guint8 *guid) {
+	gunichar2 * chars = mono_string_chars_internal (string);
+	int i = 0;
+	static const guint8 indexes[16] = {7, 5, 3, 1, 12, 10, 17, 15, 20, 22, 25, 27, 29, 31, 33, 35};
+
+	for (i = 0; i < sizeof(indexes); i++)
+		guid [i] = g_unichar_xdigit_value (chars [indexes [i]]) + (g_unichar_xdigit_value (chars [indexes [i] - 1]) << 4);
 }
 
 static gboolean

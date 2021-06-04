@@ -147,8 +147,7 @@ namespace System.Diagnostics.Tests
                 BeginInvokeDelegate = (d, args) =>
                 {
                     Assert.Null(beginInvokeTask);
-                    beginInvokeTask = new Task(() => d.DynamicInvoke(args));
-                    beginInvokeTask.Start(TaskScheduler.Default);
+                    beginInvokeTask = Task.Run(() => d.DynamicInvoke(args));
                     return beginInvokeTask;
                 }
             };
@@ -1878,7 +1877,6 @@ namespace System.Diagnostics.Tests
             Assert.Throws<Win32Exception>(() => Process.Start("exe", string.Empty, new SecureString(), "thisDomain"));
         }
 
-        [OuterLoop("May take many seconds the first time it's run")]
         [Fact]
         [PlatformSpecific(TestPlatforms.Windows)]  // Starting process with authentication not supported on Unix
         public void Process_StartWithInvalidUserNamePassword()
@@ -1966,27 +1964,23 @@ namespace System.Diagnostics.Tests
         [Fact]
         public void LongProcessNamesAreSupported()
         {
-            string sleepPath;
-            if (OperatingSystem.IsLinux())
+            // Alpine implements sleep as a symlink to the busybox executable.
+            // If we rename it, the program will no longer sleep.
+            if (PlatformDetection.IsAlpine)
             {
-                // On some distros sleep is implemented using a script/symlink, which causes this test to fail.
-                // Instead of using sleep directly, we wrap it with a script.
-                sleepPath = GetTestFilePath();
-                File.WriteAllText(sleepPath, $"#!/bin/sh\nsleep 600\n"); // sleep 10 min.
-                ChMod(sleepPath, "744");
+                return;
             }
-            else
+
+            string programPath = GetProgramPath("sleep");
+
+            if (programPath == null)
             {
-                sleepPath = GetProgramPath("sleep");
-                if (sleepPath == null)
-                {
-                    return;
-                }
+                return;
             }
 
             const string LongProcessName = "123456789012345678901234567890";
             string sleepCommandPathFileName = Path.Combine(TestDirectory, LongProcessName);
-            File.Copy(sleepPath, sleepCommandPathFileName);
+            File.Copy(programPath, sleepCommandPathFileName);
 
             using (Process px = Process.Start(sleepCommandPathFileName, "600"))
             {

@@ -248,13 +248,13 @@ namespace Microsoft.DotNet.CoreSetup.Test.HostActivation.NativeHosting
                 HostFxrPath = dotNet.GreatestVersionHostFxrFilePath;
 
                 ApplicationFixture = new TestProjectFixture("PortableApp", RepoDirectories)
-                    .EnsureRestored()
+                    .EnsureRestored(RepoDirectories.CorehostPackages)
                     .PublishProject();
                 ComponentWithNoDependenciesFixture = new TestProjectFixture("ComponentWithNoDependencies", RepoDirectories)
-                    .EnsureRestored()
+                    .EnsureRestored(RepoDirectories.CorehostPackages)
                     .PublishProject();
                 SelfContainedApplicationFixture = new TestProjectFixture("StandaloneApp", RepoDirectories)
-                    .EnsureRestored()
+                    .EnsureRestored(RepoDirectories.CorehostPackages)
                     .PublishProject(selfContained: true);
                 ComponentTypeName = $"Component.Component, {ComponentWithNoDependenciesFixture.TestProject.AssemblyName}";
             }

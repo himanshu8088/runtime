@@ -18,7 +18,6 @@
   </PropertyGroup>
   <ItemGroup>
     <RunScriptCommands Include="TEST_NAME=$(TestProjectName)" />
-    <RunScriptCommands Include="TARGET_OS=$(TargetOS)" />
     <RunScriptCommands Include="TARGET_ARCH=$(TargetArchitecture)" />
   </ItemGroup>
 
@@ -53,7 +52,6 @@
         ProjectName="$(AssemblyName)"
         MonoRuntimeHeaders="$(MicrosoftNetCoreAppRuntimePackNativeDir)include\mono-2.0"
         MainLibraryFileName="AndroidTestRunner.dll"
-        ForceInterpreter="$(MonoForceInterpreter)"
         StripDebugSymbols="False"
         OutputDir="$(BundleDir)"
         SourceDir="$(PublishDir)">
@@ -80,7 +78,7 @@
 
   <Import Project="$(MonoAOTCompilerDir)MonoAOTCompiler.props" />
 
-  <Target Condition="'$(TargetOS)' == 'iOS' or '$(TargetOS)' == 'tvOS'" Name="BundleTestAppleApp">
+  <Target Condition="'$(TargetOS)' == 'iOS'" Name="BundleTestAppleApp">
     <Error Condition="!Exists('$(MicrosoftNetCoreAppRuntimePackRidDir)')" Text="MicrosoftNetCoreAppRuntimePackRidDir=$(MicrosoftNetCoreAppRuntimePackRidDir) doesn't exist" />
     <Error Condition="('$(TargetArchitecture)' == 'arm64' or '$(TargetArchitecture)' == 'arm') and '$(DevTeamProvisioning)' == ''"
            Text="'DevTeamProvisioning' needs to be set for device builds. Set it to 'UBF8T346G9' if you're part of the Microsoft team account." />
@@ -88,9 +86,6 @@
 
     <WriteLinesToFile File="$(PublishDir)xunit-excludes.txt" Lines="$(_withoutCategories.Replace(';', '%0dcategory='))" />
 
-    <PropertyGroup>
-      <Optimized>true</Optimized>
-    </PropertyGroup>
     <ItemGroup>
       <AotInputAssemblies Condition="'$(RunAOTCompilation)' == 'true'" Include="$(PublishDir)*.dll" Exclude="$(PublishDir)System.Runtime.WindowsRuntime.dll">
         <AotArguments>@(MonoAOTCompilerDefaultAotArguments, ';')</AotArguments>
@@ -104,8 +99,6 @@
         Mode="Full"
         OutputType="AsmOnly"
         Assemblies="@(AotInputAssemblies)"
-        AotModulesTablePath="$(BundleDir)\modules.m"
-        AotModulesTableLanguage="ObjC"
         UseLLVM="$(MonoEnableLLVM)"
         LLVMPath="$(MicrosoftNetCoreAppRuntimePackNativeDir)cross">
         <Output TaskParameter="CompiledAssemblies" ItemName="BundleAssemblies" />
@@ -115,17 +108,15 @@
          and produce an app bundle (with xcode project) -->
     <RemoveDir Directories="$(BundleDir)" />
     <AppleAppBuilderTask
-        TargetOS="$(TargetOS)"
         Arch="$(TargetArchitecture)"
         ProjectName="$(AssemblyName)"
         MonoRuntimeHeaders="$(MicrosoftNetCoreAppRuntimePackNativeDir)include\mono-2.0"
         Assemblies="@(BundleAssemblies)"
         MainLibraryFileName="AppleTestRunner.dll"
-        ForceInterpreter="$(MonoForceInterpreter)"
         UseConsoleUITemplate="True"
         GenerateXcodeProject="True"
         BuildAppBundle="True"
-        Optimized="$(Optimized)"
+        Optimized="True"
         DevTeamProvisioning="$(DevTeamProvisioning)"
         OutputDirectory="$(BundleDir)"
         AppDir="$(PublishDir)">
@@ -157,16 +148,16 @@
       </WasmSatelliteAssemblies>
     </ItemGroup>
     <ItemGroup>
-      <Assemblies Include="$(PublishDir)\*.dll"/>
+      <AssemblySearchPaths Include="$(PublishDir)"/>
       <WasmFilesToIncludeInFileSystem Include="@(ContentWithTargetPath)" />
       <WasmFilesToIncludeInFileSystem Include="@(ReferenceCopyLocalPaths)" Condition="'%(ReferenceCopyLocalPaths.BuildReference)' == 'true' and !$([System.String]::new('%(ReferenceCopyLocalPaths.Identity)').EndsWith('.resources.dll'))" />
       <WasmFilesToIncludeInFileSystem Include="@(WasmSatelliteAssemblies)" TargetPath="%(WasmSatelliteAssemblies.CultureName)\%(WasmSatelliteAssemblies.Filename)%(WasmSatelliteAssemblies.Extension)" />
       <!-- Include files specified by test projects from publish dir -->
       <WasmFilesToIncludeInFileSystem Include="@(WasmFilesToIncludeFromPublishDir -> '$(PublishDir)%(Identity)')" />
-      <Assemblies Include="$(PublishDir)$(AssemblyName).dll" />
+      <ExtraAssemblies Include="$(PublishDir)$(AssemblyName).dll" />
       <!-- We need these facades for some tests. -->
-      <Assemblies Include="$(PublishDir)mscorlib.dll" />
-      <Assemblies Include="$(PublishDir)System.Drawing.dll" />
+      <ExtraAssemblies Include="$(PublishDir)mscorlib.dll" />
+      <ExtraAssemblies Include="$(PublishDir)System.Drawing.dll" />
     </ItemGroup>
     <Error Condition="!Exists('$(MicrosoftNetCoreAppRuntimePackRidDir)')" Text="MicrosoftNetCoreAppRuntimePackRidDir=$(MicrosoftNetCoreAppRuntimePackRidDir) doesn't exist" />
     <WasmAppBuilder
@@ -175,9 +166,10 @@
       MicrosoftNetCoreAppRuntimePackDir="$(MicrosoftNetCoreAppRuntimePackRidDir)"
       MainAssembly="$(PublishDir)WasmTestRunner.dll"
       MainJS="$(MonoProjectRoot)\wasm\runtime-test.js"
-      Assemblies="@(Assemblies)"
+      ExtraAssemblies="@(ExtraAssemblies)"
       SatelliteAssemblies="@(WasmSatelliteAssemblies)"
-      FilesToIncludeInFileSystem="@(WasmFilesToIncludeInFileSystem)" />
+      FilesToIncludeInFileSystem="@(WasmFilesToIncludeInFileSystem)"
+      AssemblySearchPaths="@(AssemblySearchPaths)" />
   </Target>
 
   <Target Name="AddTestRunnersToPublishedFiles"

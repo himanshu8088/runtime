@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
@@ -16,7 +15,7 @@ namespace System.Threading.Channels
         protected static readonly Action<object?> s_availableSentinel = AvailableSentinel; // named method to help with debugging
         private static void AvailableSentinel(object? s) => Debug.Fail($"{nameof(AsyncOperation)}.{nameof(AvailableSentinel)} invoked with {s}");
 
-        /// <summary>Sentinel object used in a field to indicate the operation has completed</summary>
+        /// <summary>Sentinel object used in a field to indicate the operation has completed.</summary>
         protected static readonly Action<object?> s_completedSentinel = CompletedSentinel; // named method to help with debugging
         private static void CompletedSentinel(object? s) => Debug.Fail($"{nameof(AsyncOperation)}.{nameof(CompletedSentinel)} invoked with {s}");
 
@@ -140,7 +139,7 @@ namespace System.Threading.Channels
             }
 
             ExceptionDispatchInfo? error = _error;
-            TResult? result = _result;
+            TResult result = _result;
             _currentId++;
 
             if (_pooled)
@@ -275,9 +274,9 @@ namespace System.Threading.Channels
                 {
                     sc.Post(static s =>
                     {
-                        var t = (KeyValuePair<Action<object?>, object?>)s!;
-                        t.Key(t.Value);
-                    }, new KeyValuePair<Action<object?>, object?>(continuation, state));
+                        var t = (Tuple<Action<object?>, object>)s!;
+                        t.Item1(t.Item2);
+                    }, Tuple.Create(continuation, state));
                 }
                 else
                 {

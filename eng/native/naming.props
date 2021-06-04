@@ -1,54 +1,45 @@
 <Project>
-  <PropertyGroup>
-    <StaticLibPrefix>lib</StaticLibPrefix>
-  </PropertyGroup>
-
   <!-- Add path globs specific to native binaries to exclude unnecessary files from packages. -->
   <Choose>
-    <When Condition="$(PackageRID.StartsWith('win'))">
+    <When Condition=" '$(_runtimeOSFamily)' == 'win' OR $(RuntimeIdentifier.StartsWith('win')) ">
       <PropertyGroup>
-        <ExeSuffix>.exe</ExeSuffix>
-        <LibSuffix>.dll</LibSuffix>
-        <StaticLibSuffix>.lib</StaticLibSuffix>
-        <SymbolsSuffix>.pdb</SymbolsSuffix>
+        <ApplicationFileExtension>.exe</ApplicationFileExtension>
+        <LibraryFilePrefix></LibraryFilePrefix>
+        <LibraryFileExtension>.dll</LibraryFileExtension>
+        <StaticLibraryFileExtension>.lib</StaticLibraryFileExtension>
+        <SymbolFileExtension>.pdb</SymbolFileExtension>
       </PropertyGroup>
     </When>
-    <When Condition="$(PackageRID.StartsWith('osx'))">
+    <When Condition=" '$(_runtimeOSFamily)' == 'osx' or $(RuntimeIdentifier.StartsWith('osx')) or '$(_runtimeOSFamily)' == 'ios' or $(RuntimeIdentifier.StartsWith('ios'))">
       <PropertyGroup>
-        <LibPrefix Condition=" '$(SkipLibraryPrefixFromUnix)' == '' ">lib</LibPrefix>
-        <LibSuffix>.dylib</LibSuffix>
-        <StaticLibSuffix>.a</StaticLibSuffix>
-        <SymbolsSuffix>.dwarf</SymbolsSuffix>
+        <LibraryFilePrefix Condition=" '$(SkipLibraryPrefixFromUnix)' == '' ">lib</LibraryFilePrefix>
+        <LibraryFileExtension>.dylib</LibraryFileExtension>
+        <StaticLibraryFileExtension>.a</StaticLibraryFileExtension>
+        <SymbolFileExtension>.dwarf</SymbolFileExtension>
       </PropertyGroup>
     </When>
-    <When Condition="$(PackageRID.StartsWith('android'))">
+    <When Condition=" '$(_runtimeOSFamily)' == 'android' ">
       <PropertyGroup>
-        <LibPrefix Condition=" '$(SkipLibraryPrefixFromUnix)' == '' ">lib</LibPrefix>
-        <LibSuffix>.so</LibSuffix>
-        <StaticLibSuffix>.a</StaticLibSuffix>
+        <LibraryFilePrefix Condition=" '$(SkipLibraryPrefixFromUnix)' == '' ">lib</LibraryFilePrefix>
+        <LibraryFileExtension>.so</LibraryFileExtension>
+        <StaticLibraryFileExtension>.a</StaticLibraryFileExtension>
         <!--symbols included in .so, like Linux, but can be generated externally and if so, uses .debug ext-->
-        <SymbolsSuffix>.debug</SymbolsSuffix>
+        <SymbolFileExtension>.debug</SymbolFileExtension>
       </PropertyGroup>
     </When>
     <Otherwise>
       <PropertyGroup>
-        <LibPrefix Condition=" '$(SkipLibraryPrefixFromUnix)' == '' ">lib</LibPrefix>
-        <LibSuffix>.so</LibSuffix>
-        <StaticLibSuffix>.a</StaticLibSuffix>
-        <SymbolsSuffix>.dbg</SymbolsSuffix>
+        <LibraryFilePrefix Condition=" '$(SkipLibraryPrefixFromUnix)' == '' ">lib</LibraryFilePrefix>
+        <LibraryFileExtension>.so</LibraryFileExtension>
+        <StaticLibraryFileExtension>.a</StaticLibraryFileExtension>
+        <SymbolFileExtension>.dbg</SymbolFileExtension>
       </PropertyGroup>
     </Otherwise>
   </Choose>
 
   <ItemGroup>
-    <AdditionalLibPackageExcludes Condition="'$(SymbolsSuffix)' != ''" Include="%2A%2A\%2A$(SymbolsSuffix)" />
-    <AdditionalSymbolPackageExcludes Condition="'$(LibSuffix)' != ''" Include="%2A%2A\%2A.a;%2A%2A\%2A$(LibSuffix)" />
+    <AdditionalLibPackageExcludes Condition="'$(SymbolFileExtension)' != ''" Include="%2A%2A\%2A$(SymbolFileExtension)" />
+    <AdditionalSymbolPackageExcludes Condition="'$(LibraryFileExtension)' != ''" Include="%2A%2A\%2A.a;%2A%2A\%2A$(LibraryFileExtension)" />
   </ItemGroup>
-
-  <!-- arcade is using long name for this property; 'SymbolFileExtension'.
-       remove this property group when arcade is updated with short name (SymbolsSuffix). -->
-  <PropertyGroup>
-    <SymbolFileExtension>$(SymbolsSuffix)</SymbolFileExtension>
-  </PropertyGroup>
 
 </Project>

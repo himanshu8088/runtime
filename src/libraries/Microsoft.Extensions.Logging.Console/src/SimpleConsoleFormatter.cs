@@ -3,6 +3,10 @@
 
 using System;
 using System.IO;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Text;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
@@ -74,19 +78,7 @@ namespace Microsoft.Extensions.Logging.Console
             //       Request received
 
             // category and event id
-            textWriter.Write(LoglevelPadding);
-            textWriter.Write(logEntry.Category);
-            textWriter.Write('[');
-
-#if NETCOREAPP
-            Span<char> span = stackalloc char[10];
-            if (eventId.TryFormat(span, out int charsWritten))
-                textWriter.Write(span.Slice(0, charsWritten));
-            else
-#endif
-                textWriter.Write(eventId.ToString());
-
-            textWriter.Write(']');
+            textWriter.Write(LoglevelPadding + logEntry.Category + '[' + eventId + "]");
             if (!singleLine)
             {
                 textWriter.Write(Environment.NewLine);
@@ -185,8 +177,7 @@ namespace Microsoft.Extensions.Logging.Console
                     if (paddingNeeded)
                     {
                         paddingNeeded = false;
-                        state.Write(_messagePadding);
-                        state.Write("=> ");
+                        state.Write(_messagePadding + "=> ");
                     }
                     else
                     {

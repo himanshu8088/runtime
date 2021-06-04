@@ -910,8 +910,6 @@ namespace System.Reflection.Emit
             return this;
         }
 
-        [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2074:UnrecognizedReflectionPattern",
-            Justification = "Linker doesn't analyze ResolveUserType but it's an identity function")]
         private void ResolveUserTypes()
         {
             parent = ResolveUserType(parent);
@@ -1056,7 +1054,7 @@ namespace System.Reflection.Emit
         /* Needed to keep signature compatibility with MS.NET */
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicEvents)]
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2085:UnrecognizedReflectionPattern",
-            Justification = "Linker doesn't recognize GetEvents(BindingFlags.Public) but this is what the body is doing")]
+            Justification = "Linker doesn't recongnize GetEvents(BindingFlags.Public) but this is what the body is doing")]
         public override EventInfo[] GetEvents()
         {
             const BindingFlags DefaultBindingFlags = BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance;
@@ -1617,7 +1615,7 @@ namespace System.Reflection.Emit
         public override int MetadataToken => 0x02000000 | table_idx;
 
         [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2074:UnrecognizedReflectionPattern",
-            Justification = "Linker doesn't analyze ResolveUserType but it's an identity function")]
+            Justification = "Linker doesn't recongnize ResolveUserType")]
         public void SetParent([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type? parent)
         {
             check_not_created();

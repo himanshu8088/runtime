@@ -40,6 +40,7 @@ namespace System.IO
             }
         }
 
-        public int ReadLine(Span<byte> buffer) => Inner.ReadLine(buffer);
+        public int ReadLine(byte[] buffer, int offset, int count)
+            => Inner.ReadLine(buffer, offset, count);
     }
 }

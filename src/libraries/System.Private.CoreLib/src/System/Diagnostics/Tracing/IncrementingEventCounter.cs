@@ -9,8 +9,6 @@ using System.Diagnostics;
 #if ES_BUILD_STANDALONE
 namespace Microsoft.Diagnostics.Tracing
 #else
-using System.Runtime.Versioning;
-
 namespace System.Diagnostics.Tracing
 #endif
 {
@@ -20,9 +18,6 @@ namespace System.Diagnostics.Tracing
     /// It does not calculate statistics like mean, standard deviation, etc. because it only accumulates
     /// the counter value.
     /// </summary>
-#if NETCOREAPP
-    [UnsupportedOSPlatform("browser")]
-#endif
     public partial class IncrementingEventCounter : DiagnosticCounter
     {
         /// <summary>

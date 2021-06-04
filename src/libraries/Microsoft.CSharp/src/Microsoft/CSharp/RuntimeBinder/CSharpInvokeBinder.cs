@@ -30,7 +30,7 @@ namespace Microsoft.CSharp.RuntimeBinder
 
         string ICSharpBinder.Name => "Invoke";
 
-        Type[] ICSharpInvokeOrInvokeMemberBinder.TypeArguments => Type.EmptyTypes;
+        Type[] ICSharpInvokeOrInvokeMemberBinder.TypeArguments => Array.Empty<Type>();
 
         CSharpCallFlags ICSharpInvokeOrInvokeMemberBinder.Flags => _flags;
 

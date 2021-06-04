@@ -94,7 +94,7 @@ namespace Microsoft.DotNet.CoreSetup.Test.HostActivation
 
             // Restore and build SharedFxLookupPortableApp from exe dir
             SharedFxLookupPortableAppFixture = new TestProjectFixture("SharedFxLookupPortableApp", RepoDirectories)
-                .EnsureRestored()
+                .EnsureRestored(RepoDirectories.CorehostPackages)
                 .BuildProject();
             var fixture = SharedFxLookupPortableAppFixture;
 

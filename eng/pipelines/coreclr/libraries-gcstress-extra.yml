@@ -1,5 +1,7 @@
 trigger: none
 
+pr: none
+
 # This pipeline currently has too many failures to be enabled by schedule.
 # schedules:
 # - cron: "0 10 * * 0"
@@ -27,7 +29,7 @@ jobs:
       # libraries test build platforms
       testBuildPlatforms:
       - Linux_x64
-      - windows_x64
+      - Windows_NT_x64
 
 #
 # Libraries Test Run using Release libraries, Checked CoreCLR, and stress modes

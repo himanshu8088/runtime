@@ -162,7 +162,7 @@ namespace System.Runtime.Serialization
                     }
                     else
                     {
-                        _knownTypeCollection = new ReadOnlyCollection<Type>(Type.EmptyTypes);
+                        _knownTypeCollection = new ReadOnlyCollection<Type>(Array.Empty<Type>());
                     }
                 }
                 return _knownTypeCollection;

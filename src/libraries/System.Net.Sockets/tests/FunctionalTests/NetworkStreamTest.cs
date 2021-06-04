@@ -307,10 +307,8 @@ namespace System.Net.Sockets.Tests
             });	
         }
 
-        [Theory]
-        [InlineData(true)]
-        [InlineData(false)]
-        public async Task DisposeSocketDirectly_ReadWriteThrowNetworkException(bool derivedNetworkStream)
+        [Fact]
+        public async Task DisposeSocketDirectly_ReadWriteThrowNetworkException()
         {
             using (Socket listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
             using (Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
@@ -320,29 +318,20 @@ namespace System.Net.Sockets.Tests
 
                 Task<Socket> acceptTask = listener.AcceptAsync();
                 await Task.WhenAll(acceptTask, client.ConnectAsync(new IPEndPoint(IPAddress.Loopback, ((IPEndPoint)listener.LocalEndPoint).Port)));
-                using Socket serverSocket = await acceptTask;
+                using (Socket serverSocket = await acceptTask)
+                using (DerivedNetworkStream server = new DerivedNetworkStream(serverSocket))
+                {
+                    serverSocket.Dispose();
 
-                using NetworkStream server = derivedNetworkStream ? (NetworkStream)new DerivedNetworkStream(serverSocket) : new NetworkStream(serverSocket);
+                    Assert.Throws<IOException>(() => server.Read(new byte[1], 0, 1));
+                    Assert.Throws<IOException>(() => server.Write(new byte[1], 0, 1));
 
-                serverSocket.Dispose();
+                    Assert.Throws<IOException>(() => server.BeginRead(new byte[1], 0, 1, null, null));
+                    Assert.Throws<IOException>(() => server.BeginWrite(new byte[1], 0, 1, null, null));
 
-                ExpectIOException(() => server.Read(new byte[1], 0, 1));
-                ExpectIOException(() => server.Write(new byte[1], 0, 1));
-
-                ExpectIOException(() => server.Read((Span<byte>)new byte[1]));
-                ExpectIOException(() => server.Write((ReadOnlySpan<byte>)new byte[1]));
-
-                ExpectIOException(() => server.BeginRead(new byte[1], 0, 1, null, null));
-                ExpectIOException(() => server.BeginWrite(new byte[1], 0, 1, null, null));
-
-                ExpectIOException(() => { _ = server.ReadAsync(new byte[1], 0, 1); });
-                ExpectIOException(() => { _ = server.WriteAsync(new byte[1], 0, 1); });
-            }
-
-            static void ExpectIOException(Action action)
-            {
-                IOException ex = Assert.Throws<IOException>(action);
-                Assert.IsType<ObjectDisposedException>(ex.InnerException);
+                    Assert.Throws<IOException>(() => { server.ReadAsync(new byte[1], 0, 1); });
+                    Assert.Throws<IOException>(() => { server.WriteAsync(new byte[1], 0, 1); });
+                }
             }
         }
 

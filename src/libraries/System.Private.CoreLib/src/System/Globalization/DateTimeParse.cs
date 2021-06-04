@@ -194,26 +194,23 @@ namespace System
             //
             for (int i = 0; i < formats.Length; i++)
             {
-                string? format = formats[i];
-                if (string.IsNullOrEmpty(format))
+                if (formats[i] == null || formats[i]!.Length == 0) // TODO-NULLABLE: Indexer nullability tracked (https://github.com/dotnet/roslyn/issues/34644)
                 {
                     result.SetBadFormatSpecifierFailure();
                     return false;
                 }
-
                 // Create a new result each time to ensure the runs are independent. Carry through
                 // flags from the caller and return the result.
                 DateTimeResult innerResult = default;       // The buffer to store the parsing result.
                 innerResult.Init(s);
                 innerResult.flags = result.flags;
-                if (TryParseExact(s, format, dtfi, style, ref innerResult))
+                if (TryParseExact(s, formats[i], dtfi, style, ref innerResult))
                 {
                     result.parsedDate = innerResult.parsedDate;
                     result.timeZoneOffset = innerResult.timeZoneOffset;
                     return true;
                 }
             }
-
             result.SetBadDateTimeFailure();
             return false;
         }

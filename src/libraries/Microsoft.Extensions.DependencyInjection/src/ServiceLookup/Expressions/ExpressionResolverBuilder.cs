@@ -193,7 +193,7 @@ namespace Microsoft.Extensions.DependencyInjection.ServiceLookup
         private static Expression Convert(Expression expression, Type type, bool forceValueTypeConversion = false)
         {
             // Don't convert if the expression is already assignable
-            if (type.IsAssignableFrom(expression.Type)
+            if (type.GetTypeInfo().IsAssignableFrom(expression.Type.GetTypeInfo())
                 && (!expression.Type.GetTypeInfo().IsValueType || !forceValueTypeConversion))
             {
                 return expression;

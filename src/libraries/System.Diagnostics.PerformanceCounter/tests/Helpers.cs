@@ -1,6 +1,5 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
-using System.IO;
 using System.Threading;
 using Xunit;
 
@@ -13,9 +12,7 @@ namespace System.Diagnostics.Tests
     internal class Helpers
     {
         public static bool IsElevatedAndCanWriteToPerfCounters { get => AdminHelpers.IsProcessElevated() && CanWriteToPerfCounters; }
-        public static bool IsElevatedAndCanWriteAndReadNetPerfCounters { get => AdminHelpers.IsProcessElevated() && CanWriteToPerfCounters && CanReadNetPerfCounters; }
-        public static bool CanWriteToPerfCounters { get => PlatformDetection.IsNotWindowsNanoServer; }
-        public static bool CanReadNetPerfCounters { get => File.Exists(Environment.SystemDirectory + Path.DirectorySeparatorChar + "netfxperf.dll"); }
+        public static bool CanWriteToPerfCounters { get => PlatformDetection.IsNotWindowsNanoServer && PlatformDetection.IsNotArmNorArm64Process; }
 
         public static string CreateCategory(string name, PerformanceCounterCategoryType categoryType)
         {

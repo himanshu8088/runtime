@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Formats.Asn1;
+using System.Linq;
 using System.Security.Cryptography.Asn1;
 using System.Security.Cryptography.Pkcs.Asn1;
 using System.Security.Cryptography.X509Certificates;
@@ -57,9 +58,9 @@ namespace System.Security.Cryptography.Pkcs
             return coll;
         }
 
-        public Rfc3161TimestampToken ProcessResponse(ReadOnlyMemory<byte> responseBytes, out int bytesConsumed)
+        public Rfc3161TimestampToken ProcessResponse(ReadOnlyMemory<byte> source, out int bytesConsumed)
         {
-            if (ProcessResponse(responseBytes, out Rfc3161TimestampToken? token, out Rfc3161RequestResponseStatus status, out int localBytesRead, shouldThrow: true))
+            if (ProcessResponse(source, out Rfc3161TimestampToken? token, out Rfc3161RequestResponseStatus status, out int localBytesRead, shouldThrow: true))
             {
                 Debug.Assert(status == Rfc3161RequestResponseStatus.Accepted);
                 bytesConsumed = localBytesRead;
@@ -316,11 +317,8 @@ namespace System.Security.Cryptography.Pkcs
 
             if (extensions != null)
             {
-                req.Extensions = new X509ExtensionAsn[extensions.Count];
-                for (int i = 0; i < extensions.Count; i++)
-                {
-                    req.Extensions[i] = new X509ExtensionAsn(extensions[i]);
-                }
+                req.Extensions =
+                    extensions.OfType<X509Extension>().Select(e => new X509ExtensionAsn(e)).ToArray();
             }
 
             // The RFC implies DER (see TryParse), and DER is the most widely understood given that

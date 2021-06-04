@@ -13,7 +13,10 @@ namespace System.Xml.Linq
         {
             Debug.Assert(type != null);
 
-            return o != null && type.IsAssignableFrom(o.GetType());
+            if (o == null)
+                return false;
+
+            return type.GetTypeInfo().IsAssignableFrom(o.GetType().GetTypeInfo());
         }
     }
 }

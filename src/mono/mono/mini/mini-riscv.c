@@ -324,13 +324,13 @@ mono_arch_set_native_call_context_args (CallContext *ccontext, gpointer frame, M
 
 /* Set return value in the ccontext (for n2i return) */
 void
-mono_arch_set_native_call_context_ret (CallContext *ccontext, gpointer frame, MonoMethodSignature *sig, gpointer retp)
+mono_arch_set_native_call_context_ret (CallContext *ccontext, gpointer frame, MonoMethodSignature *sig)
 {
 	NOT_IMPLEMENTED;
 }
 
 /* Gets the arguments from ccontext (for n2i entry) */
-gpointer
+void
 mono_arch_get_native_call_context_args (CallContext *ccontext, gpointer frame, MonoMethodSignature *sig)
 {
 	NOT_IMPLEMENTED;

@@ -14,7 +14,6 @@ parameters:
   pool: ''
   platform: ''
   condition: true
-  shouldContinueOnError: false
   isOfficialBuild: false
   runtimeFlavor: 'coreclr'
   helixQueues: ''
@@ -89,7 +88,6 @@ jobs:
           du -sh $(Build.SourcesDirectory)/*
           df -h
         displayName: Disk Usage after Build
-        condition: always()
 
       # If intended to send extra steps after regular build add them here.
     - ${{ if ne(parameters.extraStepsTemplate, '') }}:
@@ -104,7 +102,6 @@ jobs:
           targetRid: ${{ parameters.targetRid }}
           nameSuffix: ${{ parameters.nameSuffix }}
           platform: ${{ parameters.platform }}
-          shouldContinueOnError: ${{ parameters.shouldContinueOnError }}
           ${{ insert }}: ${{ parameters.extraStepsParameters }}
 
     - task: PublishBuildArtifacts@1

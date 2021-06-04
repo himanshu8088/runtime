@@ -3,7 +3,6 @@
 
 using System;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Security;
 using System.IO;
 
@@ -19,7 +18,7 @@ namespace Internal.IO
         // given by the specified path exists; otherwise, the result is
         // false.  Note that if path describes a directory,
         // Exists will return true.
-        public static bool Exists([NotNullWhen(true)] string? path)
+        public static bool Exists(string? path)
         {
             try
             {
@@ -42,6 +41,8 @@ namespace Internal.IO
                 return InternalExists(path);
             }
             catch (ArgumentException) { }
+            catch (NotSupportedException) { } // Security can throw this on ":"
+            catch (SecurityException) { }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
 

@@ -99,27 +99,24 @@ namespace System.Reflection
 
             for (int i = 0; i < s.Length; i++)
             {
-                switch (s[i])
+                bool addedEscape = false;
+                foreach (KeyValuePair<char, string> kv in EscapeSequences)
                 {
-                    case '\\':
-                    case ',':
-                    case '=':
-                    case '\'':
-                    case '"':
+                    string escapeReplacement = kv.Value;
+                    if (!(s[i] == escapeReplacement[0]))
+                        continue;
+                    if ((s.Length - i) < escapeReplacement.Length)
+                        continue;
+                    if (s.AsSpan(i, escapeReplacement.Length).SequenceEqual(escapeReplacement))
+                    {
                         sb.Append('\\');
-                        break;
-                    case '\t':
-                        sb.Append("\\t");
-                        continue;
-                    case '\r':
-                        sb.Append("\\r");
-                        continue;
-                    case '\n':
-                        sb.Append("\\n");
-                        continue;
+                        sb.Append(kv.Key);
+                        addedEscape = true;
+                    }
                 }
 
-                sb.Append(s[i]);
+                if (!addedEscape)
+                    sb.Append(s[i]);
             }
 
             if (needsQuoting)
@@ -138,5 +135,16 @@ namespace System.Reflection
 
             return new Version(major, minor, build, revision);
         }
+
+        public static KeyValuePair<char, string>[] EscapeSequences =
+        {
+            new KeyValuePair<char, string>('\\', "\\"),
+            new KeyValuePair<char, string>(',', ","),
+            new KeyValuePair<char, string>('=', "="),
+            new KeyValuePair<char, string>('\'', "'"),
+            new KeyValuePair<char, string>('\"', "\""),
+            new KeyValuePair<char, string>('n', Environment.NewLineConst),
+            new KeyValuePair<char, string>('t', "\t"),
+        };
     }
 }

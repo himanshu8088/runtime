@@ -165,7 +165,7 @@ namespace System.Xml.Serialization
             ilg.BeginMethod(
                 typeof(Hashtable),
                 "get_" + publicName,
-                Type.EmptyTypes,
+                Array.Empty<Type>(),
                 Array.Empty<string>(),
                 CodeGenerator.PublicOverrideMethodAttributes | MethodAttributes.SpecialName);
             propertyBuilder.SetGetMethod(ilg.MethodBuilder!);
@@ -178,7 +178,7 @@ namespace System.Xml.Serialization
 
             ConstructorInfo Hashtable_ctor = typeof(Hashtable).GetConstructor(
                 CodeGenerator.InstanceBindingFlags,
-                Type.EmptyTypes
+                Array.Empty<Type>()
                 )!;
             LocalBuilder _tmpLoc = ilg.DeclareLocal(typeof(Hashtable), "_tmp");
             ilg.New(Hashtable_ctor);
@@ -278,16 +278,16 @@ namespace System.Xml.Serialization
                 CodeIdentifier.GetCSharpName(baseSerializer),
                 TypeAttributes.Public | TypeAttributes.Abstract | TypeAttributes.BeforeFieldInit,
                 typeof(XmlSerializer),
-                Type.EmptyTypes);
+                Array.Empty<Type>());
 
             ConstructorInfo readerCtor = CreatedTypes[readerClass].GetConstructor(
                CodeGenerator.InstanceBindingFlags,
-               Type.EmptyTypes
+               Array.Empty<Type>()
                )!;
             ilg = new CodeGenerator(baseSerializerTypeBuilder);
             ilg.BeginMethod(typeof(XmlSerializationReader),
                 "CreateReader",
-                Type.EmptyTypes,
+                Array.Empty<Type>(),
                 Array.Empty<string>(),
                 CodeGenerator.ProtectedOverrideMethodAttributes);
             ilg.New(readerCtor);
@@ -295,11 +295,11 @@ namespace System.Xml.Serialization
 
             ConstructorInfo writerCtor = CreatedTypes[writerClass].GetConstructor(
                CodeGenerator.InstanceBindingFlags,
-               Type.EmptyTypes
+               Array.Empty<Type>()
                )!;
             ilg.BeginMethod(typeof(XmlSerializationWriter),
                 "CreateWriter",
-                Type.EmptyTypes,
+                Array.Empty<Type>(),
                 Array.Empty<string>(),
                 CodeGenerator.ProtectedOverrideMethodAttributes);
             ilg.New(writerCtor);
@@ -323,7 +323,7 @@ namespace System.Xml.Serialization
                 CodeIdentifier.GetCSharpName(serializerName),
                 TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.BeforeFieldInit,
                 CreatedTypes[baseSerializer],
-                Type.EmptyTypes
+                Array.Empty<Type>()
                 );
 
             ilg = new CodeGenerator(typedSerializerTypeBuilder);
@@ -395,7 +395,7 @@ namespace System.Xml.Serialization
                 MethodInfo readerType_readMethod = CreatedTypes[readerClass].GetMethod(
                     readMethod,
                     CodeGenerator.InstanceBindingFlags,
-                    Type.EmptyTypes
+                    Array.Empty<Type>()
                     )!;
                 ilg.Ldarg("reader");
                 ilg.Castclass(CreatedTypes[readerClass]);
@@ -423,7 +423,7 @@ namespace System.Xml.Serialization
             {
                 ConstructorInfo ctor = CreatedTypes[(string)serializers[key]].GetConstructor(
                     CodeGenerator.InstanceBindingFlags,
-                    Type.EmptyTypes
+                    Array.Empty<Type>()
                     )!;
                 ilg!.Ldloc(typeof(Hashtable), "_tmp");
                 ilg.Ldstr(GetCSharpString(key));
@@ -463,7 +463,7 @@ namespace System.Xml.Serialization
                     {
                         ConstructorInfo ctor = CreatedTypes[(string)serializers[xmlMappings[i].Key!]].GetConstructor(
                             CodeGenerator.InstanceBindingFlags,
-                            Type.EmptyTypes
+                            Array.Empty<Type>()
                             )!;
                         ilg.New(ctor);
                         ilg.Stloc(ilg.ReturnLocal);
@@ -487,7 +487,7 @@ namespace System.Xml.Serialization
                 "XmlSerializerContract",
                 TypeAttributes.Public | TypeAttributes.BeforeFieldInit,
                 typeof(XmlSerializerImplementation),
-                Type.EmptyTypes
+                Array.Empty<Type>()
                 );
 
             ilg = new CodeGenerator(serializerContractTypeBuilder);
@@ -499,13 +499,13 @@ namespace System.Xml.Serialization
             ilg.BeginMethod(
                 typeof(XmlSerializationReader),
                 "get_Reader",
-                Type.EmptyTypes,
+                Array.Empty<Type>(),
                 Array.Empty<string>(),
                 CodeGenerator.PublicOverrideMethodAttributes | MethodAttributes.SpecialName);
             propertyBuilder.SetGetMethod(ilg.MethodBuilder!);
             ConstructorInfo ctor = CreatedTypes[readerType].GetConstructor(
                 CodeGenerator.InstanceBindingFlags,
-                Type.EmptyTypes
+                Array.Empty<Type>()
                 )!;
             ilg.New(ctor);
             ilg.EndMethod();
@@ -519,13 +519,13 @@ namespace System.Xml.Serialization
             ilg.BeginMethod(
                 typeof(XmlSerializationWriter),
                 "get_Writer",
-                Type.EmptyTypes,
+                Array.Empty<Type>(),
                 Array.Empty<string>(),
                 CodeGenerator.PublicOverrideMethodAttributes | MethodAttributes.SpecialName);
             propertyBuilder.SetGetMethod(ilg.MethodBuilder!);
             ctor = CreatedTypes[writerType].GetConstructor(
                 CodeGenerator.InstanceBindingFlags,
-                Type.EmptyTypes
+                Array.Empty<Type>()
                 )!;
             ilg.New(ctor);
             ilg.EndMethod();
@@ -539,13 +539,13 @@ namespace System.Xml.Serialization
             // Default ctor
             ConstructorInfo baseCtor = typeof(XmlSerializerImplementation).GetConstructor(
                 CodeGenerator.InstanceBindingFlags,
-                Type.EmptyTypes
+                Array.Empty<Type>()
                 )!;
             ilg = new CodeGenerator(serializerContractTypeBuilder);
             ilg.BeginMethod(
                 typeof(void),
                 ".ctor",
-                Type.EmptyTypes,
+                Array.Empty<Type>(),
                 Array.Empty<string>(),
                 CodeGenerator.PublicMethodAttributes | MethodAttributes.RTSpecialName | MethodAttributes.SpecialName
                 );

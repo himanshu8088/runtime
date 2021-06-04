@@ -67,7 +67,6 @@ enum class common_property
     RuntimeIdentifier,
     BundleProbe,
     HostPolicyEmbedded,
-    PInvokeOverride,
     // Sentinel value - new values should be defined above
     Last
 };

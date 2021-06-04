@@ -1334,8 +1334,7 @@ namespace System
         {
             while (--digits >= 0 || value != 0)
             {
-                uint remainder;
-                (value, remainder) = Math.DivRem(value, 10);
+                value = Math.DivRem(value, 10, out uint remainder);
                 *(--bufferEnd) = (byte)(remainder + '0');
             }
             return bufferEnd;
@@ -1345,8 +1344,7 @@ namespace System
         {
             while (--digits >= 0 || value != 0)
             {
-                uint remainder;
-                (value, remainder) = Math.DivRem(value, 10);
+                value = Math.DivRem(value, 10, out uint remainder);
                 *(--bufferEnd) = (char)(remainder + '0');
             }
             return bufferEnd;
@@ -1369,8 +1367,7 @@ namespace System
                 char* p = buffer + bufferLength;
                 do
                 {
-                    uint remainder;
-                    (value, remainder) = Math.DivRem(value, 10);
+                    value = Math.DivRem(value, 10, out uint remainder);
                     *(--p) = (char)(remainder + '0');
                 }
                 while (value != 0);
@@ -1412,8 +1409,7 @@ namespace System
                 {
                     do
                     {
-                        uint remainder;
-                        (value, remainder) = Math.DivRem(value, 10);
+                        value = Math.DivRem(value, 10, out uint remainder);
                         *(--p) = (char)(remainder + '0');
                     }
                     while (value != 0);

@@ -18,11 +18,7 @@ gpointer
 mini_llvmonly_load_method (MonoMethod *method, gboolean caller_gsharedvt, gboolean need_unbox, gpointer *out_arg, MonoError *error)
 {
 	gpointer addr = mono_compile_method_checked (method, error);
-
-	if (!is_ok (error)) {
-		mono_error_cleanup (error);
-		error_init_reuse (error);
-	}
+	return_val_if_nok (error, NULL);
 
 	if (addr) {
 		return mini_llvmonly_add_method_wrappers (method, (gpointer)addr, caller_gsharedvt, need_unbox, out_arg);

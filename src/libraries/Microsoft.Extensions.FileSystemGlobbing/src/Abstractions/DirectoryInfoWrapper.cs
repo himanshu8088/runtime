@@ -35,17 +35,7 @@ namespace Microsoft.Extensions.FileSystemGlobbing.Abstractions
         {
             if (_directoryInfo.Exists)
             {
-                IEnumerable<FileSystemInfo> fileSystemInfos;
-                try
-                {
-                    fileSystemInfos = _directoryInfo.EnumerateFileSystemInfos("*", SearchOption.TopDirectoryOnly);
-                }
-                catch (DirectoryNotFoundException)
-                {
-                    yield break;
-                }
-
-                foreach (FileSystemInfo fileSystemInfo in fileSystemInfos)
+                foreach (FileSystemInfo fileSystemInfo in _directoryInfo.EnumerateFileSystemInfos("*", SearchOption.TopDirectoryOnly))
                 {
                     var directoryInfo = fileSystemInfo as DirectoryInfo;
                     if (directoryInfo != null)

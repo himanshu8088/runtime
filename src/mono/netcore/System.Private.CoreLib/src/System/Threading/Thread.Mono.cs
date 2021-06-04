@@ -289,11 +289,7 @@ namespace System.Threading
             }
         }
 
-        // Called from the runtime
-        internal static void ThrowThreadStartException(Exception ex) => throw new ThreadStartException(ex);
-
         [DynamicDependency(nameof(StartCallback))]
-        [DynamicDependency(nameof(ThrowThreadStartException))]
         [MethodImplAttribute(MethodImplOptions.InternalCall)]
         private static extern void StartInternal(Thread runtime_thread);
 #endif
@@ -309,20 +305,7 @@ namespace System.Threading
             return YieldInternal();
         }
 
-        private static bool SetApartmentStateUnchecked(ApartmentState state, bool throwOnError)
-        {
-             if (state != ApartmentState.Unknown)
-             {
-                if (throwOnError)
-                {
-                    throw new PlatformNotSupportedException(SR.PlatformNotSupported_ComInterop);
-                }
-
-                return false;
-             }
-
-             return true;
-        }
+        private static bool TrySetApartmentStateUnchecked(ApartmentState state) => state == ApartmentState.Unknown;
 
         private ThreadState ValidateThreadState()
         {

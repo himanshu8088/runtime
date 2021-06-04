@@ -2,8 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
 using Xunit;
 
 namespace System.Management.Tests
@@ -85,36 +83,6 @@ namespace System.Management.Tests
                 Assert.Equal(0u, resultCode);
 
                 Assert.True(targetProcess.HasExited);
-            }
-        }
-
-        [ConditionalFact(typeof(WmiTestHelper), nameof(WmiTestHelper.IsWmiSupported))]
-        [OuterLoop]
-        public void Serialize_ManagementException()
-        {
-            try
-            {
-                new ManagementObject("Win32_LogicalDisk.DeviceID=\"InvalidDeviceId\"").Get();
-            }
-            catch (ManagementException e)
-            {
-                using var ms = new MemoryStream();
-                var formatter = new BinaryFormatter();
-                formatter.Serialize(ms, e);
-                ms.Position = 0;
-
-                var exception = (ManagementException)formatter.Deserialize(ms);
-
-                Assert.Equal(e.ErrorCode, exception.ErrorCode);
-
-                // On .NET Framework the `ErrorInformation` underlying field is serialized
-                if (PlatformDetection.IsNetFramework)
-                {
-                    Assert.Equal(e.ErrorInformation, exception.ErrorInformation);
-                    return;
-                }
-
-                Assert.Null(exception.ErrorInformation);
             }
         }
     }

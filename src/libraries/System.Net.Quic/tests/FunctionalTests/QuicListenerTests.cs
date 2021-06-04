@@ -21,11 +21,10 @@ namespace System.Net.Quic.Tests
                 using QuicListener listener = CreateQuicListener();
 
                 using QuicConnection clientConnection = CreateQuicConnection(listener.ListenEndPoint);
-                var clientStreamTask = clientConnection.ConnectAsync();
+                await clientConnection.ConnectAsync();
 
                 using QuicConnection serverConnection = await listener.AcceptConnectionAsync();
-                await clientStreamTask;
-            }).TimeoutAfter(millisecondsTimeout: 6_000);
+            }).TimeoutAfter(millisecondsTimeout: 5_000);
         }
     }
 

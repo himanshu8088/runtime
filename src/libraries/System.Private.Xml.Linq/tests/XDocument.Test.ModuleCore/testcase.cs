@@ -90,7 +90,7 @@ namespace Microsoft.Test.ModuleCore
                             {
                                 System.Console.WriteLine(indent + var.Desc);
                                 System.Console.WriteLine(indent + " FAILED");
-                                module.AddFailure(var.Desc);
+                                module.FailCount++;
                             }
                             else
                             {
@@ -116,7 +116,7 @@ namespace Microsoft.Test.ModuleCore
                             System.Console.WriteLine(indent + var.Desc);
                             System.Console.WriteLine(e);
                             System.Console.WriteLine(indent + " FAILED");
-                            module.AddFailure(var.Desc + Environment.NewLine + e.ToString());
+                            module.FailCount++;
                         }
                     }
                 }

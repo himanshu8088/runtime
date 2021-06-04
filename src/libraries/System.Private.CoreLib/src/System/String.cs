@@ -563,6 +563,12 @@ namespace System
             return result;
         }
 
+        internal static unsafe void wstrcpy(char* dmem, char* smem, int charCount)
+        {
+            Buffer.Memmove((byte*)dmem, (byte*)smem, ((uint)charCount) * 2);
+        }
+
+
         // Returns this string.
         public override string ToString()
         {

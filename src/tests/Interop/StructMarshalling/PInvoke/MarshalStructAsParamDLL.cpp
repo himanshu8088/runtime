@@ -1263,11 +1263,6 @@ extern "C" DLL_EXPORT MultipleBools STDMETHODCALLTYPE GetBools(BOOL b1, BOOL b2)
     return {b1, b2};
 }
 
-extern "C" DLL_EXPORT IntStructPack8Explicit STDMETHODCALLTYPE GetIntStruct(int i, int j)
-{
-	return {i, j};
-}
-
 using IntIntDelegate = int (STDMETHODCALLTYPE*)(int a);
 
 struct DelegateFieldMarshaling

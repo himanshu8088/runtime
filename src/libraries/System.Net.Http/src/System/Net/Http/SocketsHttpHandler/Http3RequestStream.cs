@@ -743,7 +743,7 @@ namespace System.Net.Http
 
                 _recvBuffer.Discard(bytesRead);
 
-                if (NetEventSource.Log.IsEnabled())
+                if (NetEventSource.IsEnabled)
                 {
                     Trace($"Received frame {frameType} of length {payloadLength}.");
                 }

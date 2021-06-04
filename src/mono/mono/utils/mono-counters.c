@@ -360,7 +360,7 @@ paged_bytes (void)
 // cause a failure when registering counters since the same function address will be used by all three functions. Preventing this method from being inlined
 // will make sure the registered callback functions remains unique.
 #ifdef _MSC_VER
-#pragma optimize("", off)
+__declspec(noinline)
 #endif
 static double
 cpu_load (int kind)
@@ -413,9 +413,6 @@ cpu_load_15min (void)
 {
 	return cpu_load (2);
 }
-#ifdef _MSC_VER
-#pragma optimize("", on)
-#endif
 
 #define SYSCOUNTER_TIME (MONO_COUNTER_SYSTEM | MONO_COUNTER_LONG | MONO_COUNTER_TIME | MONO_COUNTER_MONOTONIC | MONO_COUNTER_CALLBACK)
 #define SYSCOUNTER_BYTES (MONO_COUNTER_SYSTEM | MONO_COUNTER_LONG | MONO_COUNTER_BYTES | MONO_COUNTER_VARIABLE | MONO_COUNTER_CALLBACK)

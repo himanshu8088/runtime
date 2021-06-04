@@ -3,24 +3,27 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 
 namespace Microsoft.Extensions.Configuration.Json
 {
-    internal sealed class JsonConfigurationFileParser
+    internal class JsonConfigurationFileParser
     {
         private JsonConfigurationFileParser() { }
 
-        private readonly SortedDictionary<string, string> _data = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        private readonly Stack<string> _paths = new Stack<string>();
+        private readonly IDictionary<string, string> _data = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private readonly Stack<string> _context = new Stack<string>();
+        private string _currentPath;
 
         public static IDictionary<string, string> Parse(Stream input)
             => new JsonConfigurationFileParser().ParseStream(input);
 
         private IDictionary<string, string> ParseStream(Stream input)
         {
+            _data.Clear();
+
             var jsonDocumentOptions = new JsonDocumentOptions
             {
                 CommentHandling = JsonCommentHandling.Skip,
@@ -52,26 +55,22 @@ namespace Microsoft.Extensions.Configuration.Json
                 ExitContext();
             }
 
-            if (isEmpty && _paths.Count > 0)
+            if (isEmpty && _currentPath != null)
             {
-                _data[_paths.Peek()] = null;
+                _data[_currentPath] = null;
             }
         }
 
         private void VisitValue(JsonElement value)
         {
-            Debug.Assert(_paths.Count > 0);
-
-            switch (value.ValueKind)
-            {
+            switch (value.ValueKind) {
                 case JsonValueKind.Object:
                     VisitElement(value);
                     break;
 
                 case JsonValueKind.Array:
                     int index = 0;
-                    foreach (JsonElement arrayElement in value.EnumerateArray())
-                    {
+                    foreach (JsonElement arrayElement in value.EnumerateArray()) {
                         EnterContext(index.ToString());
                         VisitValue(arrayElement);
                         ExitContext();
@@ -84,7 +83,7 @@ namespace Microsoft.Extensions.Configuration.Json
                 case JsonValueKind.True:
                 case JsonValueKind.False:
                 case JsonValueKind.Null:
-                    string key = _paths.Peek();
+                    string key = _currentPath;
                     if (_data.ContainsKey(key))
                     {
                         throw new FormatException(SR.Format(SR.Error_KeyIsDuplicated, key));
@@ -97,11 +96,16 @@ namespace Microsoft.Extensions.Configuration.Json
             }
         }
 
-        private void EnterContext(string context) =>
-            _paths.Push(_paths.Count > 0 ?
-                _paths.Peek() + ConfigurationPath.KeyDelimiter + context :
-                context);
+        private void EnterContext(string context)
+        {
+            _context.Push(context);
+            _currentPath = ConfigurationPath.Combine(_context.Reverse());
+        }
 
-        private void ExitContext() => _paths.Pop();
+        private void ExitContext()
+        {
+            _context.Pop();
+            _currentPath = ConfigurationPath.Combine(_context.Reverse());
+        }
     }
 }

@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Primitives;
 
@@ -65,7 +66,7 @@ namespace Microsoft.Extensions.Configuration
             }
             set
             {
-                if (_providers.Count == 0)
+                if (!_providers.Any())
                 {
                     throw new InvalidOperationException(SR.Error_NoSources);
                 }

@@ -187,6 +187,7 @@ namespace Microsoft.CSharp.RuntimeBinder.ComInterop
                 typeNames += typeName;
             }
 
+
             throw Error.AmbiguousConversion(argumentType.Name, typeNames);
         }
 

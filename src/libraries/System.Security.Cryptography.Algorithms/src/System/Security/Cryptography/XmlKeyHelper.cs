@@ -277,7 +277,7 @@ namespace System.Security.Cryptography
                         "Elements",
                         BindingFlags.Instance | BindingFlags.Public,
                         null,
-                        Type.EmptyTypes,
+                        Array.Empty<Type>(),
                         null)!;
                 private static readonly PropertyInfo s_elementNameProperty = s_docRootProperty.PropertyType.GetProperty("Name")!;
                 private static readonly PropertyInfo s_nameNameProperty = s_elementNameProperty.PropertyType.GetProperty("LocalName")!;

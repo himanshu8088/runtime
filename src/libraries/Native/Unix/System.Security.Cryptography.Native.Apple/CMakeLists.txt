@@ -29,13 +29,11 @@ if (CLR_CMAKE_TARGET_TVOS)
     add_definitions(-DTARGET_TVOS)
 endif()
 
-if (GEN_SHARED_LIB)
-    add_library(System.Security.Cryptography.Native.Apple
-        SHARED
-        ${NATIVECRYPTO_SOURCES}
-        ${VERSION_FILE_PATH}
-    )
-endif()
+add_library(System.Security.Cryptography.Native.Apple
+    SHARED
+    ${NATIVECRYPTO_SOURCES}
+    ${VERSION_FILE_PATH}
+)
 
 add_library(System.Security.Cryptography.Native.Apple-Static
     STATIC
@@ -44,15 +42,10 @@ add_library(System.Security.Cryptography.Native.Apple-Static
 
 set_target_properties(System.Security.Cryptography.Native.Apple-Static PROPERTIES OUTPUT_NAME System.Security.Cryptography.Native.Apple CLEAN_DIRECT_OUTPUT 1)
 
-if (GEN_SHARED_LIB)
-    target_link_libraries(System.Security.Cryptography.Native.Apple
-        ${COREFOUNDATION_LIBRARY}
-        ${SECURITY_LIBRARY}
-    )
-endif()
+target_link_libraries(System.Security.Cryptography.Native.Apple
+    ${COREFOUNDATION_LIBRARY}
+    ${SECURITY_LIBRARY}
+)
 
-if (GEN_SHARED_LIB)
-    install_with_stripped_symbols (System.Security.Cryptography.Native.Apple PROGRAMS .)
-endif()
-
-install (TARGETS System.Security.Cryptography.Native.Apple-Static DESTINATION ${STATIC_LIB_DESTINATION})
+install_with_stripped_symbols (System.Security.Cryptography.Native.Apple PROGRAMS .)
+install (TARGETS System.Security.Cryptography.Native.Apple-Static DESTINATION .)

@@ -15,7 +15,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Runtime.Versioning;
 using System.Threading;
 
 namespace System.Collections.Concurrent
@@ -39,7 +38,6 @@ namespace System.Collections.Concurrent
     /// away as an <see cref="System.Collections.Concurrent.IProducerConsumerCollection{T}"/>.
     /// </remarks>
     /// <typeparam name="T">Specifies the type of elements in the collection.</typeparam>
-    [UnsupportedOSPlatform("browser")]
     [DebuggerTypeProxy(typeof(BlockingCollectionDebugView<>))]
     [DebuggerDisplay("Count = {Count}, Type = {_collection}")]
     public class BlockingCollection<T> : IEnumerable<T>, ICollection, IDisposable, IReadOnlyCollection<T>
@@ -538,7 +536,7 @@ namespace System.Collections.Concurrent
         /// <remarks>A call to <see cref="Take()"/> may block until an item is available to be removed.</remarks>
         public T Take()
         {
-            T? item;
+            T item;
 
             if (!TryTake(out item, Timeout.Infinite, CancellationToken.None))
             {
@@ -562,7 +560,7 @@ namespace System.Collections.Concurrent
         /// <remarks>A call to <see cref="Take(CancellationToken)"/> may block until an item is available to be removed.</remarks>
         public T Take(CancellationToken cancellationToken)
         {
-            T? item;
+            T item;
 
             if (!TryTake(out item, Timeout.Infinite, cancellationToken))
             {
@@ -1091,16 +1089,15 @@ namespace System.Collections.Concurrent
             List<CancellationToken> tokensList = new List<CancellationToken>(collections.Length + 1); // + 1 for the external token
             tokensList.Add(externalCancellationToken);
 
-            // Read the appropriate WaitHandle based on the operation mode.
+            //Read the appropriate WaitHandle based on the operation mode.
             if (isAddOperation)
             {
                 for (int i = 0; i < collections.Length; i++)
                 {
-                    BlockingCollection<T> c = collections[i];
-                    if (c._freeNodes != null)
+                    if (collections[i]._freeNodes != null)
                     {
-                        handlesList.Add(c._freeNodes.AvailableWaitHandle);
-                        tokensList.Add(c._producersCancellationTokenSource.Token);
+                        handlesList.Add(collections[i]._freeNodes!.AvailableWaitHandle); // TODO-NULLABLE: Indexer nullability tracked (https://github.com/dotnet/roslyn/issues/34644)
+                        tokensList.Add(collections[i]._producersCancellationTokenSource.Token);
                     }
                 }
             }
@@ -1660,7 +1657,7 @@ namespace System.Collections.Concurrent
                 linkedTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _consumersCancellationTokenSource.Token);
                 while (!IsCompleted)
                 {
-                    T? item;
+                    T item;
                     if (TryTakeWithNoTimeValidation(out item, Timeout.Infinite, cancellationToken, linkedTokenSource))
                     {
                         yield return item;
@@ -1803,7 +1800,6 @@ namespace System.Collections.Concurrent
         }
 
         /// <summary>Returns a snapshot of the underlying collection's elements.</summary>
-        [UnsupportedOSPlatform("browser")]
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public T[] Items
         {

@@ -150,7 +150,6 @@ namespace System.Runtime.InteropServices
 
             IntPtr s = p + sizeof(IntPtr);
             *(((uint*)s) - 1) = (uint)(length * sizeof(char));
-            ((char*)s)[length] = '\0';
 
             return s;
         }

@@ -32,7 +32,7 @@ namespace System.IO
         private readonly Stream _stream;
         private readonly Encoding _encoding;
         private readonly Encoder _encoder;
-        private byte[]? _byteBuffer;
+        private readonly byte[] _byteBuffer;
         private readonly char[] _charBuffer;
         private int _charPos;
         private int _charLen;
@@ -123,6 +123,7 @@ namespace System.IO
             }
 
             _charBuffer = new char[bufferSize];
+            _byteBuffer = new byte[_encoding.GetMaxByteCount(bufferSize)];
             _charLen = bufferSize;
             // If we're appending to a Stream that already has data, don't write
             // the preamble.
@@ -274,28 +275,15 @@ namespace System.IO
                 }
             }
 
-            // For sufficiently small char data being flushed, try to encode to the stack.
-            // For anything else, fall back to allocating the byte[] buffer.
-            Span<byte> byteBuffer = stackalloc byte[0];
-            if (_byteBuffer is not null)
-            {
-                byteBuffer = _byteBuffer;
-            }
-            else
-            {
-                int maxBytesForCharPos = _encoding.GetMaxByteCount(_charPos);
-                byteBuffer = maxBytesForCharPos <= 1024 ? // arbitrary threshold
-                    stackalloc byte[1024] :
-                    (_byteBuffer = new byte[_encoding.GetMaxByteCount(_charBuffer.Length)]);
-            }
-
-            int count = _encoder.GetBytes(new ReadOnlySpan<char>(_charBuffer, 0, _charPos), byteBuffer, flushEncoder);
+            int count = _encoder.GetBytes(_charBuffer, 0, _charPos, _byteBuffer, 0, flushEncoder);
             _charPos = 0;
             if (count > 0)
             {
-                _stream.Write(byteBuffer.Slice(0, count));
+                _stream.Write(_byteBuffer, 0, count);
             }
-
+            // By definition, calling Flush should flush the stream, but this is
+            // only necessary if we passed in true for flushStream.  The Web
+            // Services guys have some perf tests where flushing needlessly hurts.
             if (flushStream)
             {
                 _stream.Flush();
@@ -471,18 +459,18 @@ namespace System.IO
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)] // prevent WriteSpan from bloating call sites
-        public override void WriteLine(ReadOnlySpan<char> buffer)
+        public override void WriteLine(ReadOnlySpan<char> value)
         {
             if (GetType() == typeof(StreamWriter))
             {
                 CheckAsyncTaskInProgress();
-                WriteSpan(buffer, appendNewLine: true);
+                WriteSpan(value, appendNewLine: true);
             }
             else
             {
                 // If a derived class may have overridden existing WriteLine behavior,
                 // we need to make sure we use it.
-                base.WriteLine(buffer);
+                base.WriteLine(value);
             }
         }
 
@@ -625,38 +613,53 @@ namespace System.IO
             ThrowIfDisposed();
             CheckAsyncTaskInProgress();
 
-            Task task = WriteAsyncInternal(value, appendNewLine: false);
+            Task task = WriteAsyncInternal(this, value, _charBuffer, _charPos, _charLen, CoreNewLine, _autoFlush, appendNewLine: false);
             _asyncWriteTask = task;
 
             return task;
         }
 
-        private async Task WriteAsyncInternal(char value, bool appendNewLine)
+        // We pass in private instance fields of this MarshalByRefObject-derived type as local params
+        // to ensure performant access inside the state machine that corresponds this async method.
+        // Fields that are written to must be assigned at the end of the method *and* before instance invocations.
+        private static async Task WriteAsyncInternal(StreamWriter _this, char value,
+                                                     char[] charBuffer, int charPos, int charLen, char[] coreNewLine,
+                                                     bool autoFlush, bool appendNewLine)
         {
-            if (_charPos == _charLen)
+            if (charPos == charLen)
             {
-                await FlushAsyncInternal(flushStream: false, flushEncoder: false).ConfigureAwait(false);
+                await _this.FlushAsyncInternal(false, false, charBuffer, charPos).ConfigureAwait(false);
+                Debug.Assert(_this._charPos == 0);
+                charPos = 0;
             }
 
-            _charBuffer[_charPos++] = value;
+            charBuffer[charPos] = value;
+            charPos++;
 
             if (appendNewLine)
             {
-                for (int i = 0; i < CoreNewLine.Length; i++) // Generally 1 (\n) or 2 (\r\n) iterations
+                for (int i = 0; i < coreNewLine.Length; i++)   // Expect 2 iterations, no point calling BlockCopy
                 {
-                    if (_charPos == _charLen)
+                    if (charPos == charLen)
                     {
-                        await FlushAsyncInternal(flushStream: false, flushEncoder: false).ConfigureAwait(false);
+                        await _this.FlushAsyncInternal(false, false, charBuffer, charPos).ConfigureAwait(false);
+                        Debug.Assert(_this._charPos == 0);
+                        charPos = 0;
                     }
 
-                    _charBuffer[_charPos++] = CoreNewLine[i];
+                    charBuffer[charPos] = coreNewLine[i];
+                    charPos++;
                 }
             }
 
-            if (_autoFlush)
+            if (autoFlush)
             {
-                await FlushAsyncInternal(flushStream: true, flushEncoder: false).ConfigureAwait(false);
+                await _this.FlushAsyncInternal(true, false, charBuffer, charPos).ConfigureAwait(false);
+                Debug.Assert(_this._charPos == 0);
+                charPos = 0;
             }
+
+            _this._charPos = charPos;
         }
 
         public override Task WriteAsync(string? value)
@@ -675,7 +678,7 @@ namespace System.IO
                 ThrowIfDisposed();
                 CheckAsyncTaskInProgress();
 
-                Task task = WriteAsyncInternal(value.AsMemory(), appendNewLine: false, default);
+                Task task = WriteAsyncInternal(this, value, _charBuffer, _charPos, _charLen, CoreNewLine, _autoFlush, appendNewLine: false);
                 _asyncWriteTask = task;
 
                 return task;
@@ -684,6 +687,68 @@ namespace System.IO
             {
                 return Task.CompletedTask;
             }
+        }
+
+        // We pass in private instance fields of this MarshalByRefObject-derived type as local params
+        // to ensure performant access inside the state machine that corresponds this async method.
+        // Fields that are written to must be assigned at the end of the method *and* before instance invocations.
+        private static async Task WriteAsyncInternal(StreamWriter _this, string value,
+                                                     char[] charBuffer, int charPos, int charLen, char[] coreNewLine,
+                                                     bool autoFlush, bool appendNewLine)
+        {
+            Debug.Assert(value != null);
+
+            int count = value.Length;
+            int index = 0;
+
+            while (count > 0)
+            {
+                if (charPos == charLen)
+                {
+                    await _this.FlushAsyncInternal(false, false, charBuffer, charPos).ConfigureAwait(false);
+                    Debug.Assert(_this._charPos == 0);
+                    charPos = 0;
+                }
+
+                int n = charLen - charPos;
+                if (n > count)
+                {
+                    n = count;
+                }
+
+                Debug.Assert(n > 0, "StreamWriter::Write(String) isn't making progress!  This is most likely a race condition in user code.");
+
+                value.CopyTo(index, charBuffer, charPos, n);
+
+                charPos += n;
+                index += n;
+                count -= n;
+            }
+
+            if (appendNewLine)
+            {
+                for (int i = 0; i < coreNewLine.Length; i++)   // Expect 2 iterations, no point calling BlockCopy
+                {
+                    if (charPos == charLen)
+                    {
+                        await _this.FlushAsyncInternal(false, false, charBuffer, charPos).ConfigureAwait(false);
+                        Debug.Assert(_this._charPos == 0);
+                        charPos = 0;
+                    }
+
+                    charBuffer[charPos] = coreNewLine[i];
+                    charPos++;
+                }
+            }
+
+            if (autoFlush)
+            {
+                await _this.FlushAsyncInternal(true, false, charBuffer, charPos).ConfigureAwait(false);
+                Debug.Assert(_this._charPos == 0);
+                charPos = 0;
+            }
+
+            _this._charPos = charPos;
         }
 
         public override Task WriteAsync(char[] buffer, int index, int count)
@@ -717,7 +782,7 @@ namespace System.IO
             ThrowIfDisposed();
             CheckAsyncTaskInProgress();
 
-            Task task = WriteAsyncInternal(new ReadOnlyMemory<char>(buffer, index, count), appendNewLine: false, cancellationToken: default);
+            Task task = WriteAsyncInternal(this, new ReadOnlyMemory<char>(buffer, index, count), _charBuffer, _charPos, _charLen, CoreNewLine, _autoFlush, appendNewLine: false, cancellationToken: default);
             _asyncWriteTask = task;
 
             return task;
@@ -739,46 +804,60 @@ namespace System.IO
                 return Task.FromCanceled(cancellationToken);
             }
 
-            Task task = WriteAsyncInternal(buffer, appendNewLine: false, cancellationToken: cancellationToken);
+            Task task = WriteAsyncInternal(this, buffer, _charBuffer, _charPos, _charLen, CoreNewLine, _autoFlush, appendNewLine: false, cancellationToken: cancellationToken);
             _asyncWriteTask = task;
             return task;
         }
 
-        private async Task WriteAsyncInternal(ReadOnlyMemory<char> source, bool appendNewLine, CancellationToken cancellationToken)
+        // We pass in private instance fields of this MarshalByRefObject-derived type as local params
+        // to ensure performant access inside the state machine that corresponds this async method.
+        // Fields that are written to must be assigned at the end of the method *and* before instance invocations.
+        private static async Task WriteAsyncInternal(StreamWriter _this, ReadOnlyMemory<char> source,
+                                                     char[] charBuffer, int charPos, int charLen, char[] coreNewLine,
+                                                     bool autoFlush, bool appendNewLine, CancellationToken cancellationToken)
         {
             int copied = 0;
             while (copied < source.Length)
             {
-                if (_charPos == _charLen)
+                if (charPos == charLen)
                 {
-                    await FlushAsyncInternal(flushStream: false, flushEncoder: false, cancellationToken).ConfigureAwait(false);
+                    await _this.FlushAsyncInternal(false, false, charBuffer, charPos, cancellationToken).ConfigureAwait(false);
+                    Debug.Assert(_this._charPos == 0);
+                    charPos = 0;
                 }
 
-                int n = Math.Min(_charLen - _charPos, source.Length - copied);
+                int n = Math.Min(charLen - charPos, source.Length - copied);
                 Debug.Assert(n > 0, "StreamWriter::Write(char[], int, int) isn't making progress!  This is most likely a race condition in user code.");
 
-                source.Span.Slice(copied, n).CopyTo(new Span<char>(_charBuffer, _charPos, n));
-                _charPos += n;
+                source.Span.Slice(copied, n).CopyTo(new Span<char>(charBuffer, charPos, n));
+                charPos += n;
                 copied += n;
             }
 
             if (appendNewLine)
             {
-                for (int i = 0; i < CoreNewLine.Length; i++) // Generally 1 (\n) or 2 (\r\n) iterations
+                for (int i = 0; i < coreNewLine.Length; i++)   // Expect 2 iterations, no point calling BlockCopy
                 {
-                    if (_charPos == _charLen)
+                    if (charPos == charLen)
                     {
-                        await FlushAsyncInternal(flushStream: false, flushEncoder: false, cancellationToken).ConfigureAwait(false);
+                        await _this.FlushAsyncInternal(false, false, charBuffer, charPos, cancellationToken).ConfigureAwait(false);
+                        Debug.Assert(_this._charPos == 0);
+                        charPos = 0;
                     }
 
-                    _charBuffer[_charPos++] = CoreNewLine[i];
+                    charBuffer[charPos] = coreNewLine[i];
+                    charPos++;
                 }
             }
 
-            if (_autoFlush)
+            if (autoFlush)
             {
-                await FlushAsyncInternal(flushStream: true, flushEncoder: false, cancellationToken).ConfigureAwait(false);
+                await _this.FlushAsyncInternal(true, false, charBuffer, charPos, cancellationToken).ConfigureAwait(false);
+                Debug.Assert(_this._charPos == 0);
+                charPos = 0;
             }
+
+            _this._charPos = charPos;
         }
 
         public override Task WriteLineAsync()
@@ -795,11 +874,12 @@ namespace System.IO
             ThrowIfDisposed();
             CheckAsyncTaskInProgress();
 
-            Task task = WriteAsyncInternal(ReadOnlyMemory<char>.Empty, appendNewLine: true, cancellationToken: default);
+            Task task = WriteAsyncInternal(this, ReadOnlyMemory<char>.Empty, _charBuffer, _charPos, _charLen, CoreNewLine, _autoFlush, appendNewLine: true, cancellationToken: default);
             _asyncWriteTask = task;
 
             return task;
         }
+
 
         public override Task WriteLineAsync(char value)
         {
@@ -815,11 +895,12 @@ namespace System.IO
             ThrowIfDisposed();
             CheckAsyncTaskInProgress();
 
-            Task task = WriteAsyncInternal(value, appendNewLine: true);
+            Task task = WriteAsyncInternal(this, value, _charBuffer, _charPos, _charLen, CoreNewLine, _autoFlush, appendNewLine: true);
             _asyncWriteTask = task;
 
             return task;
         }
+
 
         public override Task WriteLineAsync(string? value)
         {
@@ -840,11 +921,12 @@ namespace System.IO
             ThrowIfDisposed();
             CheckAsyncTaskInProgress();
 
-            Task task = WriteAsyncInternal(value.AsMemory(), appendNewLine: true, default);
+            Task task = WriteAsyncInternal(this, value, _charBuffer, _charPos, _charLen, CoreNewLine, _autoFlush, appendNewLine: true);
             _asyncWriteTask = task;
 
             return task;
         }
+
 
         public override Task WriteLineAsync(char[] buffer, int index, int count)
         {
@@ -877,7 +959,7 @@ namespace System.IO
             ThrowIfDisposed();
             CheckAsyncTaskInProgress();
 
-            Task task = WriteAsyncInternal(new ReadOnlyMemory<char>(buffer, index, count), appendNewLine: true, cancellationToken: default);
+            Task task = WriteAsyncInternal(this, new ReadOnlyMemory<char>(buffer, index, count), _charBuffer, _charPos, _charLen, CoreNewLine, _autoFlush, appendNewLine: true, cancellationToken: default);
             _asyncWriteTask = task;
 
             return task;
@@ -898,11 +980,12 @@ namespace System.IO
                 return Task.FromCanceled(cancellationToken);
             }
 
-            Task task = WriteAsyncInternal(buffer, appendNewLine: true, cancellationToken: cancellationToken);
+            Task task = WriteAsyncInternal(this, buffer, _charBuffer, _charPos, _charLen, CoreNewLine, _autoFlush, appendNewLine: true, cancellationToken: cancellationToken);
             _asyncWriteTask = task;
 
             return task;
         }
+
 
         public override Task FlushAsync()
         {
@@ -922,13 +1005,14 @@ namespace System.IO
             ThrowIfDisposed();
             CheckAsyncTaskInProgress();
 
-            Task task = FlushAsyncInternal(flushStream: true, flushEncoder: true);
+            Task task = FlushAsyncInternal(true, true, _charBuffer, _charPos);
             _asyncWriteTask = task;
 
             return task;
         }
 
-        private Task FlushAsyncInternal(bool flushStream, bool flushEncoder, CancellationToken cancellationToken = default)
+        private Task FlushAsyncInternal(bool flushStream, bool flushEncoder,
+                                        char[] sCharBuffer, int sCharPos, CancellationToken cancellationToken = default)
         {
             if (cancellationToken.IsCancellationRequested)
             {
@@ -936,43 +1020,47 @@ namespace System.IO
             }
 
             // Perf boost for Flush on non-dirty writers.
-            if (_charPos == 0 && !flushStream && !flushEncoder)
+            if (sCharPos == 0 && !flushStream && !flushEncoder)
             {
                 return Task.CompletedTask;
             }
 
-            Task flushTask = Core(flushStream, flushEncoder, cancellationToken);
+            Task flushTask = FlushAsyncInternal(this, flushStream, flushEncoder, sCharBuffer, sCharPos, _haveWrittenPreamble,
+                                                _encoding, _encoder, _byteBuffer, _stream, cancellationToken);
 
             _charPos = 0;
             return flushTask;
+        }
 
-            async Task Core(bool flushStream, bool flushEncoder, CancellationToken cancellationToken)
+
+        // We pass in private instance fields of this MarshalByRefObject-derived type as local params
+        // to ensure performant access inside the state machine that corresponds this async method.
+        private static async Task FlushAsyncInternal(StreamWriter _this, bool flushStream, bool flushEncoder,
+                                                     char[] charBuffer, int charPos, bool haveWrittenPreamble,
+                                                     Encoding encoding, Encoder encoder, byte[] byteBuffer, Stream stream, CancellationToken cancellationToken)
+        {
+            if (!haveWrittenPreamble)
             {
-                if (!_haveWrittenPreamble)
+                _this._haveWrittenPreamble = true;
+                byte[] preamble = encoding.GetPreamble();
+                if (preamble.Length > 0)
                 {
-                    _haveWrittenPreamble = true;
-                    byte[] preamble = _encoding.GetPreamble();
-                    if (preamble.Length > 0)
-                    {
-                        await _stream.WriteAsync(new ReadOnlyMemory<byte>(preamble), cancellationToken).ConfigureAwait(false);
-                    }
+                    await stream.WriteAsync(new ReadOnlyMemory<byte>(preamble), cancellationToken).ConfigureAwait(false);
                 }
+            }
 
-                byte[] byteBuffer = _byteBuffer ??= new byte[_encoding.GetMaxByteCount(_charBuffer.Length)];
+            int count = encoder.GetBytes(charBuffer, 0, charPos, byteBuffer, 0, flushEncoder);
+            if (count > 0)
+            {
+                await stream.WriteAsync(new ReadOnlyMemory<byte>(byteBuffer, 0, count), cancellationToken).ConfigureAwait(false);
+            }
 
-                int count = _encoder.GetBytes(new ReadOnlySpan<char>(_charBuffer, 0, _charPos), byteBuffer, flushEncoder);
-                if (count > 0)
-                {
-                    await _stream.WriteAsync(new ReadOnlyMemory<byte>(byteBuffer, 0, count), cancellationToken).ConfigureAwait(false);
-                }
-
-                // By definition, calling Flush should flush the stream, but this is
-                // only necessary if we passed in true for flushStream.  The Web
-                // Services guys have some perf tests where flushing needlessly hurts.
-                if (flushStream)
-                {
-                    await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
-                }
+            // By definition, calling Flush should flush the stream, but this is
+            // only necessary if we passed in true for flushStream.  The Web
+            // Services guys have some perf tests where flushing needlessly hurts.
+            if (flushStream)
+            {
+                await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -985,5 +1073,5 @@ namespace System.IO
 
             void ThrowObjectDisposedException() => throw new ObjectDisposedException(GetType().Name, SR.ObjectDisposed_WriterClosed);
         }
-    }
-}
+    }  // class StreamWriter
+}  // namespace

@@ -11,11 +11,11 @@ namespace System
     {
         public LogcatStream() : base(FileAccess.Write) {}
 
-        public override int Read(Span<byte> buffer) => throw Error.GetReadNotSupported();
+        public override int Read(byte[] buffer, int offset, int count) => throw Error.GetReadNotSupported();
 
-        public override unsafe void Write(ReadOnlySpan<byte> buffer)
+        public override unsafe void Write(byte[] buffer, int offset, int count)
         {
-            string log = ConsolePal.OutputEncoding.GetString(buffer);
+            string log = ConsolePal.OutputEncoding.GetString(buffer, offset, count);
             Interop.Logcat.AndroidLogPrint(Interop.Logcat.LogLevel.Info, "DOTNET", log);
         }
     }

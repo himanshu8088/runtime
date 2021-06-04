@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 namespace Microsoft.Extensions.DependencyInjection.Extensions
 {
@@ -84,17 +85,10 @@ namespace Microsoft.Extensions.DependencyInjection.Extensions
                 throw new ArgumentNullException(nameof(descriptor));
             }
 
-            int count = collection.Count;
-            for (int i = 0; i < count; i++)
+            if (!collection.Any(d => d.ServiceType == descriptor.ServiceType))
             {
-                if (collection[i].ServiceType == descriptor.ServiceType)
-                {
-                    // Already added
-                    return;
-                }
+                collection.Add(descriptor);
             }
-
-            collection.Add(descriptor);
         }
 
         /// <summary>
@@ -614,19 +608,12 @@ namespace Microsoft.Extensions.DependencyInjection.Extensions
                     nameof(descriptor));
             }
 
-            int count = services.Count;
-            for (int i = 0; i < count; i++)
+            if (!services.Any(d =>
+                              d.ServiceType == descriptor.ServiceType &&
+                              d.GetImplementationType() == implementationType))
             {
-                ServiceDescriptor service = services[i];
-                if (service.ServiceType == descriptor.ServiceType &&
-                    service.GetImplementationType() == implementationType)
-                {
-                    // Already added
-                    return;
-                }
+                services.Add(descriptor);
             }
-
-            services.Add(descriptor);
         }
 
         /// <summary>
@@ -687,15 +674,10 @@ namespace Microsoft.Extensions.DependencyInjection.Extensions
                 throw new ArgumentNullException(nameof(descriptor));
             }
 
-            // Remove existing
-            int count = collection.Count;
-            for (int i = 0; i < count; i++)
+            ServiceDescriptor? registeredServiceDescriptor = collection.FirstOrDefault(s => s.ServiceType == descriptor.ServiceType);
+            if (registeredServiceDescriptor != null)
             {
-                if (collection[i].ServiceType == descriptor.ServiceType)
-                {
-                    collection.RemoveAt(i);
-                    break;
-                }
+                collection.Remove(registeredServiceDescriptor);
             }
 
             collection.Add(descriptor);

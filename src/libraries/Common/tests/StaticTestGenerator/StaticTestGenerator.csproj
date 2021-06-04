@@ -8,7 +8,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn />
     <Nullable>enable</Nullable>
-    <ImportDirectoryBuildTargets>false</ImportDirectoryBuildTargets>
+  </PropertyGroup>
+  <PropertyGroup>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />

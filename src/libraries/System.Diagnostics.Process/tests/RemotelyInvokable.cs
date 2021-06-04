@@ -28,9 +28,8 @@ namespace System.Diagnostics.Tests
             return SuccessExitCode;
         }
 
-        public static int Sleep(string duration, string callerName)
+        public static int Sleep(string duration)
         {
-            _ = callerName; // argument ignored, for debugging purposes
             Thread.Sleep(int.Parse(duration));
             return SuccessExitCode;
         }

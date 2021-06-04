@@ -15,12 +15,7 @@ namespace System.IO
 
         public StringReader(string s)
         {
-            if (s is null)
-            {
-                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.s);
-            }
-
-            _s = s;
+            _s = s ?? throw new ArgumentNullException(nameof(s));
             _length = s.Length;
         }
 

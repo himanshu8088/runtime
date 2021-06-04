@@ -78,7 +78,6 @@ namespace System.Runtime.InteropServices.Tests
             yield return new object[] { typeBuilder, "t" };
 
             yield return new object[] { typeof(TestStructWithFxdLPSTRSAFld), null };
-            yield return new object[] { typeof(int[]), null };
         }
 
         [Theory]

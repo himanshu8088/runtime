@@ -462,12 +462,11 @@ namespace System.Xml.XPath
                 {
                     return false; // backcompat
                 }
-
+                // TODO-NULLABLE: Unnecessary null check?
                 if (localName != null && localName.Length == 0)
                 {
                     localName = "xmlns"; // backcompat
                 }
-
                 XAttribute? a = GetFirstNamespaceDeclarationGlobal(e);
                 while (a != null)
                 {
@@ -479,7 +478,6 @@ namespace System.Xml.XPath
                     }
                     a = GetNextNamespaceDeclarationGlobal(a);
                 }
-
                 if (localName == "xml")
                 {
                     _source = GetXmlNamespaceDeclaration();

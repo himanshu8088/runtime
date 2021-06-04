@@ -164,7 +164,7 @@ namespace System.Diagnostics.Tracing
         /// </summary>
         public static Func<PropertyValue, PropertyValue> GetPropertyGetter(PropertyInfo property)
         {
-            if (property.DeclaringType!.IsValueType)
+            if (property.DeclaringType!.GetTypeInfo().IsValueType)
                 return GetBoxedValueTypePropertyGetter(property);
             else
                 return GetReferenceTypePropertyGetter(property);
@@ -180,7 +180,7 @@ namespace System.Diagnostics.Tracing
         {
             Type type = property.PropertyType;
 
-            if (type.IsEnum)
+            if (type.GetTypeInfo().IsEnum)
                 type = Enum.GetUnderlyingType(type);
 
             Func<object?, PropertyValue> factory = GetFactory(type);
@@ -224,7 +224,7 @@ namespace System.Diagnostics.Tracing
                 }
                 else
                 {
-                    if (type.IsEnum)
+                    if (type.GetTypeInfo().IsEnum)
                         type = Enum.GetUnderlyingType(type);
 
                     if (type == typeof(bool)) { var f = (Func<TContainer, bool>)GetGetMethod(property, type); return container => new PropertyValue(f((TContainer)container.ReferenceValue!)); }

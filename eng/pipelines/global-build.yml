@@ -42,7 +42,7 @@ jobs:
     jobTemplate: /eng/pipelines/common/global-build-job.yml
     buildConfig: release
     platforms:
-    - windows_x86
+    - Windows_NT_x86
     - OSX_x64
     jobParameters:
       testGroup: innerloop
@@ -87,7 +87,7 @@ jobs:
     jobTemplate: /eng/pipelines/common/global-build-job.yml
     buildConfig: debug
     platforms:
-    - windows_x64
+    - Windows_NT_x64
     jobParameters:
       testGroup: innerloop
       nameSuffix: Mono_Libraries

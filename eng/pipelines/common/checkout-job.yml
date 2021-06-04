@@ -52,9 +52,7 @@ jobs:
         parameters:
           subsetName: ${{ path.subset }} 
           arguments:
-          # The commit that we're building is always a merge commit that is merging into the target branch.
-          # So the first parent of the commit is on the target branch and the second parent is on the source branch.
-          - --difftarget HEAD^1
+          - --difftarget origin/$(System.PullRequest.TargetBranch)
           - --subset ${{ path.subset }}
           - ${{ if ne(path.include[0], '') }}:
             - --includepaths '${{ join('+', path.include) }}'

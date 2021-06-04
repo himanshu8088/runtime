@@ -16,6 +16,8 @@ namespace System.Diagnostics
 {
     public partial class Process : IDisposable
     {
+        private static readonly UTF8Encoding s_utf8NoBom =
+            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         private static volatile bool s_initialized;
         private static readonly object s_initializedGate = new object();
         private static readonly ReaderWriterLockSlim s_processStartLock = new ReaderWriterLockSlim();
@@ -447,20 +449,20 @@ namespace System.Diagnostics
             {
                 Debug.Assert(stdinFd >= 0);
                 _standardInput = new StreamWriter(OpenStream(stdinFd, FileAccess.Write),
-                    startInfo.StandardInputEncoding ?? Encoding.Default, StreamBufferSize)
+                    startInfo.StandardInputEncoding ?? s_utf8NoBom, StreamBufferSize)
                 { AutoFlush = true };
             }
             if (startInfo.RedirectStandardOutput)
             {
                 Debug.Assert(stdoutFd >= 0);
                 _standardOutput = new StreamReader(OpenStream(stdoutFd, FileAccess.Read),
-                    startInfo.StandardOutputEncoding ?? Encoding.Default, true, StreamBufferSize);
+                    startInfo.StandardOutputEncoding ?? s_utf8NoBom, true, StreamBufferSize);
             }
             if (startInfo.RedirectStandardError)
             {
                 Debug.Assert(stderrFd >= 0);
                 _standardError = new StreamReader(OpenStream(stderrFd, FileAccess.Read),
-                    startInfo.StandardErrorEncoding ?? Encoding.Default, true, StreamBufferSize);
+                    startInfo.StandardErrorEncoding ?? s_utf8NoBom, true, StreamBufferSize);
             }
 
             return true;
@@ -554,7 +556,7 @@ namespace System.Diagnostics
         private static string[] ParseArgv(ProcessStartInfo psi, string? resolvedExe = null, bool ignoreArguments = false)
         {
             if (string.IsNullOrEmpty(resolvedExe) &&
-                (ignoreArguments || (string.IsNullOrEmpty(psi.Arguments) && !psi.HasArgumentList)))
+                (ignoreArguments || (string.IsNullOrEmpty(psi.Arguments) && psi.ArgumentList.Count == 0)))
             {
                 return new string[] { psi.FileName };
             }
@@ -577,7 +579,7 @@ namespace System.Diagnostics
                 {
                     ParseArgumentsIntoList(psi.Arguments, argvList);
                 }
-                else if (psi.HasArgumentList)
+                else
                 {
                     argvList.AddRange(psi.ArgumentList);
                 }

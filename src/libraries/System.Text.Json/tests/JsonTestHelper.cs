@@ -708,7 +708,7 @@ namespace System.Text.Json
             }
         }
 
-        public static void AssertContents(string expectedValue, ArrayBufferWriter<byte> buffer, bool skipSpecialRules = false)
+        public static void AssertContents(string expectedValue, ArrayBufferWriter<byte> buffer)
         {
             string value = Encoding.UTF8.GetString(
                     buffer.WrittenSpan
@@ -717,17 +717,17 @@ namespace System.Text.Json
 #endif
                     );
 
-            AssertContentsAgainstJsonNet(expectedValue, value, skipSpecialRules);
+            AssertContentsAgainstJsonNet(expectedValue, value);
         }
 
-        public static void AssertContents(string expectedValue, MemoryStream stream, bool skipSpecialRules = false)
+        public static void AssertContents(string expectedValue, MemoryStream stream)
         {
             string value = Encoding.UTF8.GetString(stream.ToArray());
 
-            AssertContentsAgainstJsonNet(expectedValue, value, skipSpecialRules);
+            AssertContentsAgainstJsonNet(expectedValue, value);
         }
 
-        public static void AssertContentsNotEqual(string expectedValue, ArrayBufferWriter<byte> buffer, bool skipSpecialRules = false)
+        public static void AssertContentsNotEqual(string expectedValue, ArrayBufferWriter<byte> buffer)
         {
             string value = Encoding.UTF8.GetString(
                     buffer.WrittenSpan
@@ -736,17 +736,17 @@ namespace System.Text.Json
 #endif
                     );
 
-            AssertContentsNotEqualAgainstJsonNet(expectedValue, value, skipSpecialRules);
+            AssertContentsNotEqualAgainstJsonNet(expectedValue, value);
         }
 
-        public static void AssertContentsAgainstJsonNet(string expectedValue, string value, bool skipSpecialRules)
+        public static void AssertContentsAgainstJsonNet(string expectedValue, string value)
         {
-            Assert.Equal(expectedValue.NormalizeToJsonNetFormat(skipSpecialRules), value.NormalizeToJsonNetFormat(skipSpecialRules));
+            Assert.Equal(expectedValue.NormalizeToJsonNetFormat(), value.NormalizeToJsonNetFormat());
         }
 
-        public static void AssertContentsNotEqualAgainstJsonNet(string expectedValue, string value, bool skipSpecialRules)
+        public static void AssertContentsNotEqualAgainstJsonNet(string expectedValue, string value)
         {
-            Assert.NotEqual(expectedValue.NormalizeToJsonNetFormat(skipSpecialRules), value.NormalizeToJsonNetFormat(skipSpecialRules));
+            Assert.NotEqual(expectedValue.NormalizeToJsonNetFormat(), value.NormalizeToJsonNetFormat());
         }
 
         public delegate void AssertThrowsActionUtf8JsonReader(Utf8JsonReader json);

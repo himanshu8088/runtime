@@ -80,7 +80,7 @@ namespace AppHost.Bundle.Tests
 
                 ServiceFixture = new TestProjectFixture("ServicedLocation", RepoDirectories, assemblyName: "Location");
                 ServiceFixture
-                    .EnsureRestored()
+                    .EnsureRestored(RepoDirectories.CorehostPackages)
                     .PublishProject(outputDirectory: BundleHelper.GetPublishPath(ServiceFixture));
 
             }

@@ -29,7 +29,13 @@ namespace Microsoft.Extensions.Options
         /// <summary>
         /// The default configured <typeparamref name="TOptions"/> instance, equivalent to Get(Options.DefaultName).
         /// </summary>
-        public TOptions Value => Get(Options.DefaultName);
+        public TOptions Value
+        {
+            get
+            {
+                return Get(Options.DefaultName);
+            }
+        }
 
         /// <summary>
         /// Returns a configured <typeparamref name="TOptions"/> instance with the given <paramref name="name"/>.
@@ -38,15 +44,8 @@ namespace Microsoft.Extensions.Options
         {
             name = name ?? Options.DefaultName;
 
-            if (!_cache.TryGetValue(name, out TOptions options))
-            {
-                // Store the options in our instance cache. Avoid closure on fast path by storing state into scoped locals.
-                IOptionsFactory<TOptions> localFactory = _factory;
-                string localName = name;
-                options = _cache.GetOrAdd(name, () => localFactory.Create(localName));
-            }
-
-            return options;
+            // Store the options in our instance cache
+            return _cache.GetOrAdd(name, () => _factory.Create(name));
         }
     }
 }

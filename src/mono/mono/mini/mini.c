@@ -69,6 +69,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "trace.h"
+#include "version.h"
 #include "ir-emit.h"
 
 #include "jit-icalls.h"
